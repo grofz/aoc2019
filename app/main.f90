@@ -1,10 +1,18 @@
   program main
     implicit none
-!goto 02
+!goto 03
 
-    call day01('inp/1901/input.txt')
+01  call day01('inp/1901/input.txt')
 
 02  call day02('inp/1902/input.txt')
+
+03  continue
+    call day03('inp/1903/input.txt')
+    !call day03('inp/1903/sample1.txt')
+    !call day03('inp/1903/sample2.txt')
+
+04  continue
+
 
   end program main
 
@@ -69,7 +77,7 @@
 
     ! Part 2 - manual
     goto 100
-    do 
+    do
       write(*,'(a)',advance='no') 'guess the input '
       read(*,*) inp(1), inp(2)
       call zx % reset()
@@ -96,4 +104,22 @@
       if (zx%mem(0)>=TARGET_RESULT) exit
     end do
     print '("Answer 2/1 ",i0,l2)', 100*i+j, zx%mem(0)==TARGET_RESULT
+    print *
   end subroutine day02
+
+
+
+  subroutine day03(file)
+    use day1903_mod
+    implicit none
+    character(len=*), intent(in) :: file
+    type(line_t), allocatable :: wire_a(:), wire_b(:)
+    integer, allocatable :: xsec(:), ysec(:)
+    integer :: ans1, ans2
+
+    call read_from_file(file, wire_a, wire_b)
+    call find_intersections(wire_a, wire_b, xsec, ysec, ans1, ans2)
+    print '("Valid answer 1? ",l1)', ans1==709 .or. ans1==159 .or. ans1==135
+    print '("Valid answer 2? ",l1)', ans2==610 .or. ans2==410 .or. ans2==13836
+    print *
+  end subroutine day03
