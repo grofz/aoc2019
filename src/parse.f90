@@ -4,32 +4,31 @@
     public read_pattern, chop_string, read_numbers, parse_array
     public read_strings, str2int
 
-    integer, parameter :: EXTREME_LINE_LENGTH = 2000 ! for counting lines
-    integer, parameter :: DEFAULT_LINE_LENGTH = 80   ! for resulting arrays of characters
+    integer, parameter :: EXTREME_LINE_LENGTH = 2000 
+    integer, parameter :: DEFAULT_LINE_LENGTH = 80   
 
     ! public just for tests
     public count_lines, count_lines_block
 
   contains
 
-    function read_strings(file, line_length) result(lines)
+    function read_strings(file) result(lines)
       character(len=*), intent(in) :: file
-      integer, intent(in), optional :: line_length
-      character(len=DEFAULT_LINE_LENGTH), allocatable :: lines(:)
+      !integer, intent(in) :: line_length
+      character(len=EXTREME_LINE_LENGTH), allocatable :: lines(:)
       !character(len=:), allocatable :: lines(:)
+      !character(len=line_length), allocatable :: lines(:)
 !
 ! Store each line from the file as an item in the array of characters
 !
-      integer :: fid, line_length0, i, n, istat
+      integer :: fid, i, n, istat
       character(len=EXTREME_LINE_LENGTH) :: oneline
 
-      line_length0 = DEFAULT_LINE_LENGTH
-      if (present(line_length)) line_length0 = line_length
       open(newunit=fid, file=file, status='old')
       n = count_lines(fid)
       ! some problem with compiler? must have compile-time known length
       !allocate(character(len=line_length0) :: lines(n), stat=istat)
-      !allocate(character(len=80) :: lines(n), stat=istat)
+      !allocate(character(len=line_length) :: lines(n), stat=istat)
       allocate( lines(n), stat=istat)
       do i=1, n
         read(fid,'(a)') lines(i)
@@ -114,12 +113,12 @@
       integer, intent(in) :: nlen
       character(len=nlen), allocatable :: arr(:)
 !
-! ???
+! Get array of strings from one string
 !
       character(len=len(line)) :: line0
       character(len=nlen), allocatable :: wrk(:)
       character(len=len(line)) :: a1, a2
-      integer, parameter :: MAX_ITEMS=100
+      integer, parameter :: MAX_ITEMS=2000
       integer :: nitems
 
       allocate(wrk(MAX_ITEMS))
