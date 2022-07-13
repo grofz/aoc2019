@@ -4,7 +4,7 @@
     public read_pattern, chop_string, read_numbers, parse_array
     public read_strings, str2int
 
-    integer, parameter :: EXTREME_LINE_LENGTH = 2000 
+    integer, parameter :: EXTREME_LINE_LENGTH = 3000 
     integer, parameter :: DEFAULT_LINE_LENGTH = 80   
 
     ! public just for tests
@@ -118,7 +118,7 @@
       character(len=len(line)) :: line0
       character(len=nlen), allocatable :: wrk(:)
       character(len=len(line)) :: a1, a2
-      integer, parameter :: MAX_ITEMS=2000
+      integer, parameter :: MAX_ITEMS=3500
       integer :: nitems
 
       allocate(wrk(MAX_ITEMS))
