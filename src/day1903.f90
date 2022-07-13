@@ -2,7 +2,7 @@
 ! Day 3: Crossed Wires
 !
   module day1903_mod
-    use parse_mod, only : read_strings, parse_array
+    use parse_mod, only : read_strings, split, string_t
     implicit none
     private
     public find_intersections, read_from_file, line_t
@@ -120,13 +120,15 @@
       character(len=*), intent(in) :: file
       type(line_t), intent(out), allocatable :: wire_a(:), wire_b(:)
 
-      character(len=:), allocatable :: lines(:), intervals(:)
+      type(string_t), allocatable :: lines(:), intervals(:)
 
       lines = read_strings(file)
       if (size(lines)/=2) error stop 'day 3 - two lines of input expected'
-      intervals = parse_array(lines(1),',',10)
+      !intervals = parse_array(lines(1),',',10)
+      call split(lines(1)%str,',',intervals)
       call get_line_intervals(intervals, wire_a)
-      intervals = parse_array(lines(2),',',10)
+      !intervals = parse_array(lines(2),',',10)
+      call split(lines(2)%str,',',intervals)
       call get_line_intervals(intervals, wire_b)
 
 print '("Wire A intervals ",i0," and wire B intervals ", i0)', size(wire_a), size(wire_b)
@@ -135,7 +137,7 @@ print '("Wire A intervals ",i0," and wire B intervals ", i0)', size(wire_a), siz
 
 
     subroutine get_line_intervals(inst, wire)
-      character(len=*), intent(in) :: inst(:)
+      type(string_t), intent(in) :: inst(:)
       type(line_t), allocatable, intent(out) :: wire(:)
 
       integer :: i, n, pos1(2), pos0(2), dlen, dx(2), tot_dis
@@ -146,8 +148,8 @@ print '("Wire A intervals ",i0," and wire B intervals ", i0)', size(wire_a), siz
       pos0 = 0    ! all wires start from [0,0]
       tot_dis = 0 ! total distance traveled from start of wire
       do i=1, n
-        dir = inst(i)(1:1)
-        read(inst(i)(2:),*) dlen
+        dir = inst(i) % str(1:1)
+        read(inst(i) % str(2:),*) dlen
         select case(dir)
         case('U')
           dx = [0, 1]

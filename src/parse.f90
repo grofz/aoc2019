@@ -1,37 +1,133 @@
+!
+! Parse routines to process input data
+!
+! inspired also from: https://github.com/jacobwilliams/AoC-2021/blob/master/src/aoc_utilities.f90
+!
+! Note for myself: never use character(len=:) arrays of characters, likely bugs in older compilers.
+!                  array of string_t seems a more robust way
+!
   module parse_mod
     implicit none
     private
-    public read_pattern, chop_string, read_numbers, parse_array
-    public read_strings, str2int
+    public string_t
+    public read_strings, split
+    public read_numbers
+    !public read_pattern
 
-    integer, parameter :: EXTREME_LINE_LENGTH = 3000 
     integer, parameter :: DEFAULT_LINE_LENGTH = 80   
 
-    ! public just for tests
-    public count_lines, count_lines_block
+    type string_t
+      character(len=:), allocatable :: str
+    contains
+      procedure :: to_int => string_to_int
+    end type string_t
+    interface string_t
+      module procedure string_new
+    end interface
 
   contains
 
-    function read_strings(file) result(lines)
+! =======================
+! String_t implementation
+! =======================
+    type(string_t) function string_new(str) result(this)
+      character(len=*), intent(in) :: str
+      allocate(character(len=len(str)) :: this%str)
+      this%str=str
+    end function
+
+    elemental integer function string_to_int(this) result(int)
+      class(string_t), intent(in) :: this
+      if (.not. allocated(this%str)) error stop 'string_to_int - error, string unallocated'
+      read(this%str,*) int
+    end function string_to_int
+
+
+
+    subroutine split(str, separator, items)
+      character(len=*), intent(in) :: str, separator
+      type(string_t), intent(out), allocatable :: items(:)
+
+      integer, parameter :: INIT_SEPS_MAX=50
+      integer :: i, j, len_str, len_sep, n_seps, n_seps_max
+      integer :: i1, i2
+      integer, allocatable :: iseps(:)
+
+      len_sep = len(separator)
+      len_str = len(str)
+
+      ! count, how many times the separator appears in the string and save its positions
+      n_seps_max = INIT_SEPS_MAX
+      allocate(iseps(n_seps_max))
+      n_seps = 0
+      j = 1
+      do
+        if (j > len_str) exit
+        i = index(str(j:), separator)
+        if (i<=0) exit
+        if (n_seps == n_seps_max) call expand(iseps, n_seps_max)
+        n_seps = n_seps + 1
+        iseps(n_seps) = i+j-1
+        j = j + i + (len_sep-1)
+      end do
+
+      allocate(items(n_seps+1))
+
+      do i = 1, n_seps+1
+        if (i==1) then
+          i1 = 1
+        else
+          i1 = iseps(i-1)+len_sep
+        end if
+
+        if (i==n_seps+1) then
+          i2 = len_str
+        else
+          i2 = iseps(i)-1
+        end if
+
+        if (i2 >= i1) then
+          items(i) = string_t(str(i1:i2))
+        else
+          items(i) = string_t('')
+        end if
+      end do
+
+    contains
+      subroutine expand(arr, nmax)
+        integer, allocatable, intent(inout) :: arr(:)
+        integer, intent(inout) :: nmax
+        integer, allocatable :: wrk(:)
+        integer :: nmax_ext
+        if (size(arr)/=nmax) error stop 'split/expand - array dimension does not match with input'
+        nmax_ext = nmax*2
+        allocate(wrk(nmax_ext))
+        wrk(1:nmax) = arr
+        nmax = nmax_ext
+        call move_alloc(wrk, arr)
+      end subroutine expand
+
+    end subroutine split
+
+
+
+! ======================
+! Reading data from file
+! ======================
+
+    function read_strings(file) result(strings)
       character(len=*), intent(in) :: file
-      !integer, intent(in) :: line_length
-      character(len=EXTREME_LINE_LENGTH), allocatable :: lines(:)
-      !character(len=:), allocatable :: lines(:)
-      !character(len=line_length), allocatable :: lines(:)
-!
-! Store each line from the file as an item in the array of characters
-!
-      integer :: fid, i, n, istat
-      character(len=EXTREME_LINE_LENGTH) :: oneline
+      type(string_t), allocatable :: strings(:)
+
+      integer :: fid, i, n
+      character(len=:), allocatable :: line
 
       open(newunit=fid, file=file, status='old')
       n = count_lines(fid)
-      ! some problem with compiler? must have compile-time known length
-      !allocate(character(len=line_length0) :: lines(n), stat=istat)
-      !allocate(character(len=line_length) :: lines(n), stat=istat)
-      allocate( lines(n), stat=istat)
+      allocate(strings(n))
       do i=1, n
-        read(fid,'(a)') lines(i)
+        call read_line_from_file(fid, line)
+        strings(i) = string_t(line)
       end do
       close(fid)
     end function read_strings
@@ -46,13 +142,14 @@
 !
 ! (just a demo, how use "read_strings" and "str2int" elementals)
 !
-      character(len=:), allocatable :: lines(:)
+      type(string_t), allocatable :: lines(:)
       lines = read_strings(file)
-      a = str2int(lines)
+      a = lines % To_int()
     end function read_numbers
 
 
 
+! old version - not used 
     function read_pattern(file) result(aa)
       character(len=*), intent(in) :: file
       character(len=1), allocatable :: aa(:,:)
@@ -87,71 +184,11 @@
 
 
 
-    subroutine chop_string(left, reg, right)
-      character(len=*), intent(inout) :: left
-      character(len=*), intent(in) :: reg
-      character(len=*), intent(out) :: right
-!
-! Chop string in two at "reg"-character: returns left and right part, "reg" character is discarded
-!
-      integer :: i, n
-      i = scan(left, reg)
-      n = len(left)
-      if (i==0) then
-        right = ''
-      else
-        right = left(i+1:)
-        left = left(:i-1)
-      end if
-    end subroutine chop_string
-
-
-
-    function parse_array(line, delim, nlen) result(arr)
-      character(len=*), intent(in) :: line
-      character(len=1), intent(in) :: delim
-      integer, intent(in) :: nlen
-      character(len=nlen), allocatable :: arr(:)
-!
-! Get array of strings from one string
-!
-      character(len=len(line)) :: line0
-      character(len=nlen), allocatable :: wrk(:)
-      character(len=len(line)) :: a1, a2
-      integer, parameter :: MAX_ITEMS=3500
-      integer :: nitems
-
-      allocate(wrk(MAX_ITEMS))
-      nitems=0
-      line0 = line
-      do
-        call chop_string(line0, delim, a2)
-        if (len_trim(line0) == 0) exit
-        a1 = adjustl(line0)
-        nitems = nitems+1
-        wrk(nitems) = a1
-
-        if(len_trim(a2)==0) exit
-        line0 = adjustl(a2)
-      end do
-
-      allocate(arr(nitems))
-      arr = wrk(1:nitems)
-    end function parse_array
-
-
-
-    elemental function str2int(s) result(i)
-      character(len=*), intent(in) :: s
-      integer :: i, ios
-      read(s,*,iostat=ios) i
-      if (ios /= 0) error stop 'str2int error - invalid string: "'//s//'"'
-    end function str2int
-
-
  ! =======================
  ! Local helper procedures
  ! =======================
+
+
 
     function count_lines(fid) result(n)
       integer, intent(in) :: fid
@@ -160,7 +197,7 @@
 ! Get number of lines in the file. Empty lines are included in the count.
 !
       integer :: ios
-      character(len=EXTREME_LINE_LENGTH) :: line
+      character(len=1) :: line
       rewind(fid)
       n = 0
       do
@@ -169,6 +206,7 @@
         n = n + 1
       end do
       rewind(fid)
+
     end function count_lines
 
 
@@ -180,7 +218,7 @@
 ! Get number of lines for each block. Blocks are separated by an empty line
 !
       integer :: ios, iblock
-      character(len=EXTREME_LINE_LENGTH) :: line
+      character(len=1) :: line
       rewind(fid)
       narr = [0]
       iblock = 1
@@ -195,6 +233,34 @@
         narr(iblock) = narr(iblock) + 1
       end do
       rewind(fid)
+
     end function count_lines_block
+
+
+
+    subroutine read_line_from_file(fid, line)
+      integer, intent(in) :: fid
+      character(len=:), allocatable, intent(out) :: line
+
+      integer :: nread, ios
+      character(len=DEFAULT_LINE_LENGTH) :: buffer
+
+      nread = 0
+      buffer = ''
+      line = ''
+
+      do
+        read(fid,'(a)',advance='no',size=nread,iostat=ios) buffer
+        if (is_iostat_end(ios) .or. is_iostat_eor(ios)) then
+          if (nread>0) line = line//buffer(1:nread)
+          exit
+        else if (ios==0) then
+          line = line//buffer
+        else
+          error stop 'read_line_from_file - read error'
+        end if
+      end do
+
+    end subroutine read_line_from_file
 
   end module parse_mod

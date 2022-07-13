@@ -6,7 +6,8 @@
     allocate(ispass(0))
 
 10  ispass = [ispass, .false.]
-    call test_parse(ispass(size(ispass)))
+    !call test_parse(ispass(size(ispass)))
+    call test_parse2(ispass(size(ispass)))
 
 999 continue
     if (all(ispass)) then

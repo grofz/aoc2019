@@ -24,7 +24,7 @@
     integer, parameter :: OPADD=1, OPMUL=2, OPIN=3, OPOUT=4, OPEND=99
     integer, parameter :: OPJMP_TRUE=5, OPJMP_FALSE=6, OPLT=7, OPEQ=8
     integer, parameter :: STATE_ENDED=-1, STATE_RUNNING=0
-    integer, parameter :: DBGL=2 ! debug-level (0, 1)
+    integer, parameter :: DBGL=0 !2 ! debug-level (0, 1)
 
   contains
 

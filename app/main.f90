@@ -1,6 +1,6 @@
   program main
     implicit none
-goto 05
+!goto 05
 
 01  call day01('inp/1901/input.txt')
 
@@ -54,10 +54,10 @@ goto 05
   subroutine day02(file)
     !use day1902_mod
     use day1905_mod ! Version 2.0 computer from day 5
-    use parse_mod, only : read_strings, parse_array, str2int
+    use parse_mod, only : read_strings, split, string_t
     implicit none
     character(len=*), intent(in) :: file
-    character(len=:), allocatable :: lines(:), items(:)
+    type(string_t), allocatable :: lines(:), items(:)
     integer, allocatable :: state(:)
     type(computer_t) :: zx
     integer :: inp(2), i, j
@@ -66,8 +66,10 @@ goto 05
     ! Read and parse input
     lines = read_strings(file)
     if (size(lines)/=1) error stop 'day02 - input file has more than one line'
-    items = parse_array(lines(1),',',8)
-    state = str2int(items)
+    call split(lines(1)%str, ',', items)
+    !items = parse_array(lines(1),',',8)
+    state = items % To_int()
+    !state = str2int(items)
     !print '(20(i4,1x))', state
 
     ! Load and run
@@ -149,18 +151,18 @@ goto 05
 
   subroutine day05(file)
     use day1905_mod
-    use parse_mod, only : read_strings, parse_array, str2int
+    use parse_mod, only : read_strings, string_t, split
     implicit none
     character(len=*), intent(in) :: file
-    character(len=:), allocatable :: lines(:), items(:)
+    type(string_t), allocatable :: lines(:), items(:)
     integer, allocatable :: state(:)
     type(computer_t) :: zx
 
     ! Read and parse input
     lines = read_strings(file)
     if (size(lines)/=1) error stop 'day05 - input file has more than one line'
-    items = parse_array(lines(1),',',8)
-    state = str2int(items)
+    call split(lines(1)%str,',',items)
+    state = items % To_int()
     !print '(16(i5,1x))', state
 
     ! Load and run test (Part 1)
