@@ -1,17 +1,14 @@
   program main
     implicit none
-!goto 03
+!goto 04
 
 01  call day01('inp/1901/input.txt')
 
 02  call day02('inp/1902/input.txt')
 
-03  continue
-    call day03('inp/1903/input.txt')
-    !call day03('inp/1903/sample1.txt')
-    !call day03('inp/1903/sample2.txt')
+03  call day03('inp/1903/input.txt')
 
-04  continue
+04  call day04()
 
 
   end program main
@@ -123,3 +120,22 @@
     print '("Valid answer 2? ",l1)', ans2==610 .or. ans2==410 .or. ans2==13836
     print *
   end subroutine day03
+
+
+
+  subroutine day04
+    use day1904_mod
+    implicit none
+    character(len=PASSLEN) :: range(2)
+    integer :: ans1, ans2
+
+    range(1)='172930'
+    range(2)='683082'
+
+    call count_valid(range, 1, ans1)
+    print '("Answer 4/1 ",i0,l2)', ans1, ans1==1675
+    call count_valid(range, 2, ans2)
+    print '("Answer 4/2 ",i0,l2)', ans2, ans2==1142
+    print '("Range was ",a,"-",a)',range
+    print *
+  end subroutine day04
