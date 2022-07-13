@@ -13,6 +13,7 @@ goto 06
 05  call day05('inp/1905/input.txt')
 
 06  continue
+    !call day06('inp/1906/sample.txt')
     call day06('inp/1906/input.txt')
 
 
@@ -189,16 +190,32 @@ goto 06
     use parse_mod, only : read_strings, string_t, split
     implicit none
     character(len=*), intent(in) :: file
-    type(string_t), allocatable :: lines(:), tmp(:)
-    integer :: i, j
+    type(string_t), allocatable :: lines(:)
+    type(object_ptr), allocatable :: map(:), you_path(:), san_path(:)
+    integer :: nobj, i, j, ans1, you_n, san_n, ans2
 
     lines = read_strings(file)
-    do i=1,size(lines)
-      call split(lines(i)%str, ')', tmp)
-      print '(a,1x,a)', (tmp(j)%str, j=1,size(tmp))
+    call make_map(lines, map)
+    nobj = size(map)
+
+    print '("Unique objects ",i0," Lines of input ",i0)', nobj, size(lines)
+    call count_orbits(map, ans1)
+    print '("Total number of orbits (Ans 6/1) ",i0,l2)', ans1, ans1==42 .or. ans1==224901
+
+    ! Part Two
+    i = object_find(map, 'YOU')
+    if (i==0) error stop 'YOU not found'
+    call list_to_com(map(i)%ptr, you_path)
+    j = object_find(map, 'SAN')
+    if (j==0) error stop 'SAN not found'
+    call list_to_com(map(j)%ptr, san_path)
+    you_n = size(you_path)
+    san_n = size(san_path)
+    do i=0, min(you_n, san_n)
+      if (you_path(you_n-i)%getkey() /= san_path(san_n-i)%getkey()) exit
     end do
+    ans2 = (you_n-i-1)+(san_n-i-1)
+    print '("Total number of moves (Ans 6/2) ",i0,l2)', ans2, ans2==4 .or. ans1==224901
+
+    ! TODO - deallocate pointers before leaving!!!
   end subroutine
-
-
-
-
