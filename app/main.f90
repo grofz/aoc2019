@@ -1,6 +1,6 @@
   program main
     implicit none
-!goto 05
+goto 06
 
 01  call day01('inp/1901/input.txt')
 
@@ -11,6 +11,9 @@
 04  call day04()
 
 05  call day05('inp/1905/input.txt')
+
+06  continue
+    call day06('inp/1906/input.txt')
 
 
   end program main
@@ -178,3 +181,24 @@
     print '("Answer 5/2 ",i0,l2)', zx%get_outbuf(), zx%get_outbuf()==3629692
     print *
   end subroutine day05
+
+
+
+  subroutine day06(file)
+    use day1906_mod
+    use parse_mod, only : read_strings, string_t, split
+    implicit none
+    character(len=*), intent(in) :: file
+    type(string_t), allocatable :: lines(:), tmp(:)
+    integer :: i, j
+
+    lines = read_strings(file)
+    do i=1,size(lines)
+      call split(lines(i)%str, ')', tmp)
+      print '(a,1x,a)', (tmp(j)%str, j=1,size(tmp))
+    end do
+  end subroutine
+
+
+
+
