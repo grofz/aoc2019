@@ -5,11 +5,14 @@
 !
   module day1907_mod
     use queue_mod, only : queue_t
+    use memory_mod, only : memory_t
     implicit none
+    private
 
-    type computer_t
+    type, public ::  computer_t
       private
-      integer, allocatable :: mem(:) ! working memory state
+      !integer, allocatable :: mem(:) 
+      type(memory_t) :: mem          ! working memory state structure
       integer, allocatable :: rom(:) ! read-only memory (copy of the initial program)
       integer              :: ptr    ! instruction pointer
       integer              :: n      ! memory size
@@ -33,7 +36,7 @@
     ! 0 or 2 : echo individual instructions
     ! 0 or 4 : echo I/O operations
     ! 0 or 8 : empty/full buffer complains
-    integer, parameter :: DBGL=12 
+    integer, parameter :: DBGL=0 !15  
 
     ! Adjusting the computer
     integer, parameter :: IOBUF_SIZE = 3
@@ -84,9 +87,9 @@
 !
       this%n = size(mem0)
       if (allocated(this%rom)) deallocate(this%rom)
-      if (allocated(this%mem)) deallocate(this%mem)
+      !if (allocated(this%mem)) deallocate(this%mem)
       allocate(this%rom(0:this%n-1))
-      allocate(this%mem(0:this%n-1))
+      !allocate(this%mem(0:this%n-1))
       this%rom(0:this%n-1) = mem0 ! TODO - remove () left from =
       call this % Reset()
     end subroutine computer_load
@@ -106,11 +109,12 @@
       if (present(inbuf_size)) inbuf0 = inbuf_size
       if (present(outbuf_size)) outbuf0 = outbuf_size
 
-      if (.not. allocated(this%rom) .or. .not. allocated(this%mem)) &
+      if (.not. allocated(this%rom) ) &
           error stop 'computer_reset - memory not initialized'
-      if (size(this%mem) /= this%n .or. size(this%rom) /= this%n) & 
+      if (size(this%rom) /= this%n) & 
           error stop 'computer_reset - memory allocation inconsistent'
-      this%mem = this%rom
+      !this%mem = this%rom
+      call this%mem % Init(this%rom)
       this%ptr = 0
       this%inbuf = queue_t(maxsize=inbuf0)
       this%outbuf = queue_t(maxsize=outbuf0)
@@ -146,10 +150,11 @@
       integer :: i, imod(3), jmp, val(3)
       integer :: ad(3), pt(3), op, res, tmp_io
 
-      if (num2bit(DBGL,1)) print '("Pointer at ",i4," op-value ",i0)',this%ptr, this%mem(this%ptr)
+      if (num2bit(DBGL,1)) print '("Pointer at ",i4," op-value ",i0)', &
+          this%ptr, this%mem%Read(this%ptr)
 
       ! Extract parameter mode from the instruction
-      op = this%mem(this%ptr)
+      op = this%mem%Read(this%ptr)
       do i=3,1,-1
         imod(i) = op/10**(i+1)
         op = mod(op, 10**(i+1))
@@ -158,7 +163,7 @@
       ! Identify instruction. Can we proceed?
       select case(op)
       case default 
-        print  '("Pointer at ",i0," uknown instruction ",i0)', this%ptr, this%mem(this%ptr)
+        print  '("Pointer at ",i0," uknown instruction ",i0)', this%ptr, this%mem%Read(this%ptr)
         error stop 'computer_step - invalid instruction'
 
       case(OPEND)
@@ -197,11 +202,11 @@
       if (this%ptr+jmp-1 > this%n-1) error stop 'computer_step - reaching behind allocated memory'
       do i = 1, 3
         if (i > jmp-1) exit
-        ad(i)  = this%mem(this%ptr+i)
+        ad(i)  = this%mem%Read(this%ptr+i)
         select case(imod(i))
         case(0) ! address value
           if (ad(i)<0 .or. ad(i)>this%n-1) error stop 'computer_step - address value out of memory'
-          val(i) = this%mem(ad(i))
+          val(i) = this%mem%Read(ad(i))
         case(1) ! immediate mode
           val(i) = ad(i)
         case(2) ! relative mode
@@ -211,21 +216,22 @@
         end select
       end do
 
-      !if (jmp==4 .and. imod(3) /= 0) print *,'Warning OP 3rd parameter is wrong mode'
       if (jmp==4 .and. imod(3) /= 0) error stop 'Warning OP 3rd parameter is wrong mode'
 
       ! It should be possible to process the instruction
       select case(op)
       case(OPADD)
         res = val(1) + val(2)
-        this%mem(ad(3)) = res
+        !this%mem(ad(3)) = res
+        call this%mem%Write(ad(3), res)
         if (num2bit(DBGL,2)) &
             print '("Add ",i0," (",i0") and ",i0," (",i0,") and store to ",i0," (",i0,")")', &
             ad(1), val(1), ad(2), val(2), ad(3), res
 
       case(OPMUL)
         res = val(1) * val(2)
-        this%mem(ad(3)) = res
+        !this%mem(ad(3)) = res
+        call this%mem%Write(ad(3), res)
         if (num2bit(DBGL,2)) &
             print '("Mul ",i0," (",i0") and ",i0," (",i0,") and store to ",i0," (",i0,")")', &
             ad(1), val(1), ad(2), val(2), ad(3), res
@@ -233,7 +239,8 @@
       case(OPLT)
         res = 0
         if (val(1) < val(2)) res = 1
-        this%mem(ad(3)) = res
+        !this%mem(ad(3)) = res
+        call this%mem%Write(ad(3), res)
         if (num2bit(DBGL,2)) &
             print '("Is ",i0," (",i0") less than ",i0," (",i0,") and store to ",i0," (",i0,")")', &
             ad(1), val(1), ad(2), val(2), ad(3), res
@@ -241,14 +248,16 @@
       case(OPEQ)
         res = 0
         if (val(1) == val(2)) res = 1
-        this%mem(ad(3)) = res
+        !this%mem(ad(3)) = res
+        call this%mem%Write(ad(3), res)
         if (num2bit(DBGL,2)) &
             print '("Is ",i0," (",i0") equal to ",i0," (",i0,") and store to ",i0," (",i0,")")', &
             ad(1), val(1), ad(2), val(2), ad(3), res
 
       case(OPIN)
         call this%inbuf % Remove(tmp_io)
-        this%mem(ad(1)) = tmp_io
+        !this%mem(ad(1)) = tmp_io
+        call this%mem%Write(ad(1), tmp_io)
         if (imod(1)/=0) error stop 'Warning IN parameter is wrong mode'
         if (num2bit(DBGL,3)) &
             print '("IO reading to address ",i0," (",i0,"). Input buffer items left ",i0)', &
@@ -258,7 +267,7 @@
         tmp_io = val(1)
         call this%outbuf % Insert(tmp_io)
         if (num2bit(DBGL,3)) &
-            print '("IO writing ",i0," (",i0,"). Output buffer now  ",i0)', &
+            print '("IO writing ",i0," (",i0,"). Output buffer items now ",i0)', &
             ad(1), tmp_io, this%outbuf % Size()
 
       case(OPJMP_TRUE)
@@ -323,15 +332,17 @@
     subroutine legacy_setinput(this,inp)
       class(computer_t), intent(inout) :: this
       integer, intent(in) :: inp(2)
-      this%mem(1) = inp(1)
-      this%mem(2) = inp(2)
+      !this%mem(1) = inp(1)
+      !this%mem(2) = inp(2)
+      call this%mem%write(1, inp(1))
+      call this%mem%write(2, inp(2))
     end subroutine legacy_setinput
 
 
 
     integer function legacy_getoutput(this)
       class(computer_t), intent(in) :: this
-      legacy_getoutput = this%mem(0)
+      legacy_getoutput = this%mem%Read(0)
     end function 
 
   end module day1907_mod

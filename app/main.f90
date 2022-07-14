@@ -246,7 +246,7 @@ goto 07
     type(computer_t) :: cluster(CLUSTER_SIZE)
     integer :: i, ans1, ans2
 
-    ! Read and parse input
+    ! Read and load Intcode program
     lines = read_strings(file)
     if (size(lines)/=1) error stop 'day07 - input file has more than one line'
     call split(lines(1)%str,',',items)
@@ -254,9 +254,11 @@ goto 07
       call cluster(i) % Load(items % To_int())
     end do
     !print '(16(i5,1x))', items % To_int()
-    call solve_day7(cluster,.false.,ans1)
-    print '("Highest signal value (7/1) is: ",i0,l2)',ans1, ans1==338603
- !  call solve_day7(cluster,.true.,ans2)
- !  print '("Highest signal value (7/2) is: ",i0,l2)',ans2, ans2==338603
 
+    ! Solve the puzzle
+    call solve_day7(cluster, .false., ans1)
+    print '("Highest signal value (7/1) is: ",i0,l2)',ans1, ans1==338603
+    call solve_day7(cluster, .true., ans2)
+    print '("Highest signal value (7/2) is: ",i0,l2)',ans2, ans2==63103596
+    print *
   end subroutine day07
