@@ -1,6 +1,6 @@
   program main
     implicit none
-goto 07
+goto 09
 
 01  call day01('inp/1901/input.txt')
 
@@ -16,10 +16,11 @@ goto 07
     !call day06('inp/1906/sample.txt')
     call day06('inp/1906/input.txt')
 
-07  continue 
-    !call day07('inp/1907/sample3.txt')
-    call day07('inp/1907/input.txt')
+07  call day07('inp/1907/input.txt')
 
+08  call day08('inp/1908/input.txt')
+
+09  call day09('inp/1909/input.txt')
 
   end program main
 
@@ -262,3 +263,68 @@ goto 07
     print '("Highest signal value (7/2) is: ",i0,l2)',ans2, ans2==63103596
     print *
   end subroutine day07
+
+
+
+  subroutine day08(file)
+    use day1908_mod
+    use parse_mod, only : read_strings, string_t
+    implicit none
+    character(len=*), intent(in) :: file
+    type(string_t), allocatable :: lines(:)
+    character(len=1), allocatable :: pic(:,:)
+    integer :: nchar, ans1
+
+    ! Input read into a string
+    lines = read_strings(file)
+    nchar = len_trim(lines(1)%str)
+    print '("Input ",i0" lines of ",i0" characters")',size(lines), nchar
+    call decode_image(lines(1)%str, pic, ans1)
+    print '("Answer 8/1 ",i0,l2)', ans1, ans1==1792
+    print *
+  end subroutine day08
+
+
+
+  subroutine day09(file)
+    use kinds_m, only : I8B
+    use intcode_mod, only : computer_t
+    use parse_mod, only : read_strings, string_t, split
+    implicit none
+    character(len=*), intent(in) :: file
+    type(string_t), allocatable :: lines(:), items(:)
+    integer(I8B), allocatable :: iarr128(:)
+    type(computer_t) :: ZX128
+    integer(I8B), allocatable :: ans1(:), ans2(:)
+
+    ! Read and load Intcode program
+    lines = read_strings(file)
+    if (size(lines)/=1) error stop 'day09 - input file has more than one line'
+    call split(lines(1)%str,',',items)
+    iarr128 = int(items % To_int(), kind=I8B)
+
+    ! Test Program 1
+    !iarr128=[109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99] 
+    ! Test Program 2
+    !iarr128=[1102,34915192,34915192,7,4,7,99,0]
+    ! Test Program 3
+    !iarr128=[104_I8B,1125899906842624_I8B,99_I8B]
+
+    call ZX128 % Load(iarr128)
+    !print '(10(i8,1x))', items % To_int()
+    call ZX128 % Reset(1,1)
+    call ZX128 % Set_inbuf(1)
+    call ZX128 % Run()
+    ans1 = ZX128 % Get_outbuf()
+    print '(a/,4(i18))', 'BOOST diagnostic code (9/1)', ans1
+    print '("Is valid answer ?",l2)', ans1(1)==2457252183_I8B
+
+    ! Part 2
+    call ZX128 % Reset(1,1)
+    call ZX128 % Set_inbuf(2)
+    call ZX128 % Run()
+    ans2 = ZX128 % Get_outbuf()
+    print '(a/,4(i18))', 'BOOST distress signal coordinates (9/2)', ans2
+    print '("Is valid answer ?",l2)', ans2(1)==70634
+    print *
+  end subroutine day09

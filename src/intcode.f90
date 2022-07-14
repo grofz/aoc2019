@@ -1,10 +1,9 @@
 !
-! Day 7: 
-! (Version 2.5 of our computer from day 5)
-! Adding input and output buffers
+! Advent of code 2019 - Intcode computer interpreter
 !
-  module day1907_mod
-    use queue_mod, only : queue_t
+  module intcode_mod
+    use kinds_m, only : IXB => I8B, I4B
+    use queue128_mod, only : queue_t
     use memory_mod, only : memory_t
     implicit none
     private
@@ -12,23 +11,30 @@
     type, public ::  computer_t
       private
       !integer, allocatable :: mem(:) 
-      type(memory_t) :: mem          ! working memory state structure
-      integer, allocatable :: rom(:) ! read-only memory (copy of the initial program)
-      integer              :: ptr    ! instruction pointer
-      integer              :: n      ! memory size
+      type(memory_t) :: mem               ! working memory state structure
+      integer(IXB), allocatable :: rom(:) ! read-only mem (initial program copy)
+      integer(IXB)              :: ptr    ! instruction pointer
+      integer(IXB)              :: rbs=0  ! relative base
+      integer              :: n      ! memory size (basic memory)
       type(queue_t) :: inbuf, outbuf ! input / output buffer
     contains
-      procedure :: Load => computer_load
+      generic :: Load => computer_load64, computer_load128
       procedure :: Reset => computer_reset
       procedure :: Run => computer_run     ! run until program interupted
       procedure :: Step => computer_step   ! do one step
-      procedure :: Set_inbuf, Get_outbuf   ! communicate with I/O buffers
-      procedure :: Read_outbuf, Isempty_outbuf, Isfull_inbuf
+      ! communicate with I/O buffers
+      generic :: Set_inbuf => set_inbuf64, set_inbuf128
+      generic :: Get_outbuf => get_outbuf128  
+      generic :: Read_outbuf => read_outbuf64, read_outbuf128
+      procedure :: Isempty_outbuf, Isfull_inbuf
       procedure :: legacy_setinput, legacy_getoutput
+      procedure, private :: computer_load64, computer_load128
+      procedure, private :: set_inbuf64, set_inbuf128, read_outbuf64
+      procedure, private :: get_outbuf64, get_outbuf128, read_outbuf128
     end type computer_t
 
     integer, parameter :: OPADD=1, OPMUL=2, OPIN=3, OPOUT=4, OPEND=99
-    integer, parameter :: OPJMP_TRUE=5, OPJMP_FALSE=6, OPLT=7, OPEQ=8
+    integer, parameter :: OPJMP_TRUE=5, OPJMP_FALSE=6, OPLT=7, OPEQ=8, OPADJ=9
     integer, parameter, public :: SHALT=-1, SRUNNING=0, SINBUF_EMPTY=-2, SOUTBUF_FULL=-3
 
     ! Debugging mode (DBGL is a sum of items)
@@ -36,7 +42,7 @@
     ! 0 or 2 : echo individual instructions
     ! 0 or 4 : echo I/O operations
     ! 0 or 8 : empty/full buffer complains
-    integer, parameter :: DBGL=15 !15  
+    integer, parameter :: DBGL=12 !15  
 
     ! Adjusting the computer
     integer, parameter :: IOBUF_SIZE = 3
@@ -46,26 +52,54 @@
 !
 ! Input / output operations with the computer
 !
-    subroutine set_inbuf(this, val)
+    subroutine set_inbuf64(this, val)
       class(computer_t), intent(inout) :: this
       integer, intent(in)              :: val
-      !this % inbuf = val
+      call this%inbuf % Insert(int(val,kind=IXB))
+    end subroutine
+
+    subroutine set_inbuf128(this, val)
+      class(computer_t), intent(inout) :: this
+      integer(IXB), intent(in)              :: val
       call this%inbuf % Insert(val)
     end subroutine
 
-    function get_outbuf(this) result(vals)
+
+
+    function get_outbuf64(this) result(vals)
       class(computer_t), intent(inout) :: this
       integer, allocatable :: vals(:)
-      !val = this % outbuf
+      integer, allocatable :: vals128(:)
+      vals128 = this%outbuf % Export()
+      vals = vals128 ! auto conversion from 128 to 64?
+      this%outbuf = queue_t(maxsize=IOBUF_SIZE)
+    end function
+
+    function get_outbuf128(this) result(vals)
+      class(computer_t), intent(inout) :: this
+      integer(IXB), allocatable :: vals(:)
       vals = this%outbuf % Export()
       this%outbuf = queue_t(maxsize=IOBUF_SIZE)
     end function
 
-    subroutine read_outbuf(this, val)
+
+
+    subroutine read_outbuf64(this, val)
       class(computer_t), intent(inout) :: this
       integer, intent(out) :: val
+      integer(IXB) :: val128
+      call this%outbuf % Remove(val128)
+      if (val128 > huge(val)) error stop 'read_outbuf - too big to convert'
+      val = int(val128, kind=I4B)
+    end subroutine
+
+    subroutine read_outbuf128(this, val)
+      class(computer_t), intent(inout) :: this
+      integer(IXB), intent(out) :: val
       call this%outbuf % Remove(val)
     end subroutine
+
+
 
     logical function isempty_outbuf(this) result(isempty)
       class(computer_t), intent(in) :: this
@@ -79,20 +113,30 @@
 
 
 
-    subroutine computer_load(this, mem0)
-      class(computer_t), intent(out) :: this
-      integer, intent(in) :: mem0(:)
 !
 ! Load program "mem0" to memory. Initialize computer.
 !
+    subroutine computer_load64(this, mem0)
+      class(computer_t), intent(out) :: this
+      integer, intent(in) :: mem0(:)
       this%n = size(mem0)
       if (allocated(this%rom)) deallocate(this%rom)
-      !if (allocated(this%mem)) deallocate(this%mem)
       allocate(this%rom(0:this%n-1))
-      !allocate(this%mem(0:this%n-1))
       this%rom(0:this%n-1) = mem0 ! TODO - remove () left from =
       call this % Reset()
-    end subroutine computer_load
+print '(a)', 'Computer_load64 called'
+    end subroutine computer_load64
+
+    subroutine computer_load128(this, mem0)
+      class(computer_t), intent(out) :: this
+      integer(IXB), intent(in) :: mem0(:)
+      this%n = size(mem0)
+      if (allocated(this%rom)) deallocate(this%rom)
+      allocate(this%rom(0:this%n-1))
+      this%rom(0:this%n-1) = mem0 ! TODO - remove () left from =
+      call this % Reset()
+print '(a)', 'computer_load128 called'
+    end subroutine computer_load128
 
 
 
@@ -115,7 +159,8 @@
           error stop 'computer_reset - memory allocation inconsistent'
       !this%mem = this%rom
       call this%mem % Init(this%rom)
-      this%ptr = 0
+      this%ptr = 0_IXB
+      this%rbs = 0_IXB
       this%inbuf = queue_t(maxsize=inbuf0)
       this%outbuf = queue_t(maxsize=outbuf0)
     end subroutine computer_reset
@@ -147,14 +192,17 @@
 !
 ! Do one instruction.
 !
-      integer :: i, imod(3), jmp, val(3)
-      integer :: ad(3), pt(3), op, res, tmp_io
+      integer :: i, imod(3), jmp, op
+      integer(IXB) :: val(3), ad(3), res, tmp_io, op128
+      !integer :: pt(3) 
 
       if (num2bit(DBGL,1)) print '("Pointer at ",i4," op-value ",i0)', &
           this%ptr, this%mem%Read(this%ptr)
 
       ! Extract parameter mode from the instruction
-      op = this%mem%Read(this%ptr)
+      op128 = this%mem%Read(this%ptr)
+      if (op128 > huge(op)) error stop 'computer_step - op value is 128bit number'
+      op = op128
       do i=3,1,-1
         imod(i) = op/10**(i+1)
         op = mod(op, 10**(i+1))
@@ -177,7 +225,7 @@
           ierr = SINBUF_EMPTY
           goto 999
         else
-          jmp = 2 ! one parameter instructions
+          jmp = 2 ! one parameter instruction
         end if
 
       case(OPOUT)
@@ -186,8 +234,11 @@
           ierr = SOUTBUF_FULL
           goto 999
         else
-          jmp = 2 ! one parameter instructions
+          jmp = 2 ! one parameter instruction
         end if
+
+      case(OPADJ)
+        jmp = 2 ! one parameter instruction
 
       case(OPJMP_TRUE, OPJMP_FALSE)
         jmp = 3 ! two parameter instructions
@@ -198,31 +249,32 @@
       end select
       ierr = SRUNNING
 
-      ! Get arguments acording to the mode (0-address, 1-immediate)
+      ! Get arguments acording to the mode (0-address, 1-immediate, 2-relative)
       if (this%ptr+jmp-1 > this%n-1) error stop 'computer_step - reaching behind allocated memory'
       do i = 1, 3
         if (i > jmp-1) exit
         ad(i)  = this%mem%Read(this%ptr+i)
         select case(imod(i))
         case(0) ! address value
-          if (ad(i)<0 .or. ad(i)>this%n-1) error stop 'computer_step - address value out of memory'
+          !if (ad(i)<0 .or. ad(i)>this%n-1) error stop 'computer_step - address value out of memory'
           val(i) = this%mem%Read(ad(i))
         case(1) ! immediate mode
           val(i) = ad(i)
         case(2) ! relative mode
-          error stop 'computer_step - relative mode not supported'
+          !val(i) = this%mem%Read(ad(i)+this%rbs)
+          ad(i) = ad(i) + this%rbs
+          val(i) = this%mem%Read(ad(i))
         case default
           error stop 'computer_step - invalid mode'
         end select
       end do
 
-      if (jmp==4 .and. imod(3) /= 0) error stop 'Warning OP 3rd parameter is wrong mode'
+      if (jmp==4 .and. imod(3) == 1) error stop 'Warning OP 3rd parameter is wrong mode'
 
       ! It should be possible to process the instruction
       select case(op)
       case(OPADD)
         res = val(1) + val(2)
-        !this%mem(ad(3)) = res
         call this%mem%Write(ad(3), res)
         if (num2bit(DBGL,2)) &
             print '("Add ",i0," (",i0") and ",i0," (",i0,") and store to ",i0," (",i0,")")', &
@@ -230,7 +282,6 @@
 
       case(OPMUL)
         res = val(1) * val(2)
-        !this%mem(ad(3)) = res
         call this%mem%Write(ad(3), res)
         if (num2bit(DBGL,2)) &
             print '("Mul ",i0," (",i0") and ",i0," (",i0,") and store to ",i0," (",i0,")")', &
@@ -239,7 +290,6 @@
       case(OPLT)
         res = 0
         if (val(1) < val(2)) res = 1
-        !this%mem(ad(3)) = res
         call this%mem%Write(ad(3), res)
         if (num2bit(DBGL,2)) &
             print '("Is ",i0," (",i0") less than ",i0," (",i0,") and store to ",i0," (",i0,")")', &
@@ -248,7 +298,6 @@
       case(OPEQ)
         res = 0
         if (val(1) == val(2)) res = 1
-        !this%mem(ad(3)) = res
         call this%mem%Write(ad(3), res)
         if (num2bit(DBGL,2)) &
             print '("Is ",i0," (",i0") equal to ",i0," (",i0,") and store to ",i0," (",i0,")")', &
@@ -256,9 +305,8 @@
 
       case(OPIN)
         call this%inbuf % Remove(tmp_io)
-        !this%mem(ad(1)) = tmp_io
         call this%mem%Write(ad(1), tmp_io)
-        if (imod(1)/=0) error stop 'Warning IN parameter is wrong mode'
+        if (imod(1)==1) error stop 'Warning IN parameter is wrong mode'
         if (num2bit(DBGL,3)) &
             print '("IO reading to address ",i0," (",i0,"). Input buffer items left ",i0)', &
             ad(1), tmp_io, this%inbuf % Size()
@@ -292,6 +340,12 @@
           jmp = 0
           if (num2bit(DBGL,2)) print '("...jumped")'
         end if
+
+      case(OPADJ)
+        this%rbs = this%rbs + val(1)
+        if (num2bit(DBGL,2)) &
+          print '("Adjust base by ",i0," (",i0,")  Base now ",i0)', &
+          ad(1),val(1),this%rbs
 
       case default
         error stop 'computer_step - invalid op'
@@ -345,4 +399,4 @@
       legacy_getoutput = this%mem%Read(0)
     end function 
 
-  end module day1907_mod
+  end module intcode_mod
