@@ -1,6 +1,6 @@
   program main
     implicit none
-goto 06
+goto 07
 
 01  call day01('inp/1901/input.txt')
 
@@ -15,6 +15,10 @@ goto 06
 06  continue
     !call day06('inp/1906/sample.txt')
     call day06('inp/1906/input.txt')
+
+07  continue 
+    !call day07('inp/1907/sample3.txt')
+    call day07('inp/1907/input.txt')
 
 
   end program main
@@ -57,14 +61,15 @@ goto 06
 
   subroutine day02(file)
     !use day1902_mod
-    use day1905_mod ! Version 2.0 computer from day 5
+    !use day1905_mod 
+    use day1907_mod ! Version 2.5 computer from day 7
     use parse_mod, only : read_strings, split, string_t
     implicit none
     character(len=*), intent(in) :: file
     type(string_t), allocatable :: lines(:), items(:)
     integer, allocatable :: state(:)
     type(computer_t) :: zx
-    integer :: inp(2), i, j
+    integer :: inp(2), i, j, output
     integer, parameter :: TARGET_RESULT=19690720
 
     ! Read and parse input
@@ -79,9 +84,10 @@ goto 06
     ! Load and run
     !call zx % init(state)
     call zx % Load(state)
-    call zx % Setinput([12,2])
+    call zx % Legacy_setinput([12,2])
     call zx % Run()
-    print '("Answer 2/1 ",i0,l2)', zx%Getoutput(), zx%Getoutput()==4930687
+    output = zx % Legacy_getoutput()
+    print '("Answer 2/1 ",i0,l2)', output, output==4930687
 
     ! Part 2 - manual
     goto 100
@@ -89,9 +95,10 @@ goto 06
       write(*,'(a)',advance='no') 'guess the input '
       read(*,*) inp(1), inp(2)
       call zx % Reset()
-      call zx % Setinput(inp)
+      call zx % legacy_Setinput(inp)
       call zx % Run()
-      print *, 'RESULT IS ',zx%Getoutput(), zx%Getoutput()-TARGET_RESULT
+    output = zx % Legacy_getoutput()
+      print *, 'RESULT IS ',output, output-TARGET_RESULT
     end do
 
     ! Part 2 - automatic
@@ -99,19 +106,19 @@ goto 06
     j = 0
     do i=0, 99
       call zx % Reset()
-      call zx % Setinput([i, j])
+      call zx % legacy_Setinput([i, j])
       call zx % Run()
       !print '("Iteration ",i2,1x,i2," difference from target ",i9)',i,j,zx%mem(0)-TARGET_RESULT
-      if (zx%Getoutput() > TARGET_RESULT) exit
+      if (zx%legacy_Getoutput() > TARGET_RESULT) exit
     end do
     do j=0, 99
       call zx % Reset()
-      call zx % Setinput([i-1, j])
+      call zx % legacy_Setinput([i-1, j])
       call zx % Run()
       !print '("Iteration ",i2,1x,i2," difference from target ",i9)',i,j,zx%mem(0)-TARGET_RESULT
-      if (zx%Getoutput() >= TARGET_RESULT) exit
+      if (zx%legacy_Getoutput() >= TARGET_RESULT) exit
     end do
-    print '("Answer 2/1 ",i0,l2)', 100*i+j, zx%Getoutput()==TARGET_RESULT
+    print '("Answer 2/1 ",i0,l2)', 100*i+j, zx%legacy_Getoutput()==TARGET_RESULT
     print *
   end subroutine day02
 
@@ -154,13 +161,15 @@ goto 06
 
 
   subroutine day05(file)
-    use day1905_mod
+    !use day1905_mod
+    use day1907_mod ! modernized interpreter
     use parse_mod, only : read_strings, string_t, split
     implicit none
     character(len=*), intent(in) :: file
     type(string_t), allocatable :: lines(:), items(:)
     integer, allocatable :: state(:)
     type(computer_t) :: zx
+    integer, allocatable :: outbuf(:)
 
     ! Read and parse input
     lines = read_strings(file)
@@ -171,15 +180,20 @@ goto 06
 
     ! Load and run test (Part 1)
     call zx % Load(state)
+    call zx % Reset(1,10)
     call zx % set_inbuf(1)
     call zx % Run()
-    print '("Answer 5/1 ",i0,l2)', zx%get_outbuf(), zx%get_outbuf()==9006673
+    outbuf = zx%get_outbuf()
+    print '(a,8(i8,1x))', 'Buffer =', outbuf
+    print '("Answer 5/1 ",i0,l2)', outbuf(size(outbuf)), outbuf(size(outbuf))==9006673
 
     ! Part 2
-    call zx % Reset()
+    call zx % Reset(1,1)
     call zx % set_inbuf(5)
     call zx % Run()
-    print '("Answer 5/2 ",i0,l2)', zx%get_outbuf(), zx%get_outbuf()==3629692
+    outbuf = zx%get_outbuf()
+    print '(a,8(i8,1x))', 'Buffer =', outbuf
+    print '("Answer 5/2 ",i0,l2)', outbuf(size(outbuf)), outbuf(size(outbuf))==3629692
     print *
   end subroutine day05
 
@@ -218,4 +232,31 @@ goto 06
     print '("Total number of moves (Ans 6/2) ",i0,l2)', ans2, ans2==4 .or. ans1==224901
 
     ! TODO - deallocate pointers before leaving!!!
-  end subroutine
+  end subroutine day06
+
+
+
+  subroutine day07(file)
+    use day1907b_mod
+    use parse_mod, only : read_strings, string_t, split
+    implicit none
+    character(len=*), intent(in) :: file
+    type(string_t), allocatable :: lines(:), items(:)
+    integer, parameter :: CLUSTER_SIZE=5
+    type(computer_t) :: cluster(CLUSTER_SIZE)
+    integer :: i, ans1, ans2
+
+    ! Read and parse input
+    lines = read_strings(file)
+    if (size(lines)/=1) error stop 'day07 - input file has more than one line'
+    call split(lines(1)%str,',',items)
+    do i=1, CLUSTER_SIZE
+      call cluster(i) % Load(items % To_int())
+    end do
+    !print '(16(i5,1x))', items % To_int()
+    call solve_day7(cluster,.false.,ans1)
+    print '("Highest signal value (7/1) is: ",i0,l2)',ans1, ans1==338603
+ !  call solve_day7(cluster,.true.,ans2)
+ !  print '("Highest signal value (7/2) is: ",i0,l2)',ans2, ans2==338603
+
+  end subroutine day07
