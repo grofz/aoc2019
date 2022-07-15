@@ -7,3 +7,10 @@ Solutions to Advent of Code 2019 in Fortran
 - Day 3: Crossed Wires
 - Day 4: Secure Container
 - Day 5: Sunny with a Chance of Asteroids
+- Day 6: Universal Orbit Map
+- Day 7: Amplification Circuit
+- Day 8: Space Image Format
+- Day 9: Sensor Boost
+- Day 10: Monitoring Station
+- Day 11: Space Police TODO
+- Day 12: The N-Body Problem TODO

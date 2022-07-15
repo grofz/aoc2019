@@ -57,6 +57,7 @@
 
 
 
+
      pure integer function memory_read64(this, adr) result(val)
        class(memory_t), intent(in) :: this
        integer, intent(in)         :: adr

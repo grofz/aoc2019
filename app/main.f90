@@ -1,6 +1,6 @@
   program main
     implicit none
-goto 09
+goto 11
 
 01  call day01('inp/1901/input.txt')
 
@@ -26,9 +26,8 @@ goto 09
     call day10('inp/1910/input.txt')
     !call day10('inp/1910/sample3.txt')
     !call day10('inp/1910/sample1.txt')
-stop
 11  continue
-    !call day11('inp/1911/input.txt')
+    call day11('inp/1911/input.txt')
 
   end program main
 
@@ -351,6 +350,7 @@ stop
 
   subroutine day11(file)
     use intcode_mod, only : computer_t
+    use day1911_mod
     use kinds_m, only : I8B
     character(len=*), intent(in) :: file
     integer(I8B) :: inp
