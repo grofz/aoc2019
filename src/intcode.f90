@@ -11,23 +11,33 @@
     type, public ::  computer_t
       private
       !integer, allocatable :: mem(:) 
-      type(memory_t) :: mem               ! working memory state structure
+      type(memory_t) :: mem               ! memory is separate class
       integer(IXB), allocatable :: rom(:) ! read-only mem (initial program copy)
-      integer(IXB)              :: ptr    ! instruction pointer
+      integer(IXB)              :: ptr=0  ! instruction pointer
       integer(IXB)              :: rbs=0  ! relative base
       integer              :: n      ! memory size (basic memory)
-      type(queue_t) :: inbuf, outbuf ! input / output buffer
+      type(queue_t) :: inbuf, outbuf ! input / output buffers
     contains
-      generic :: Load => computer_load64, computer_load128
-      procedure :: Reset => computer_reset
-      procedure :: Run => computer_run     ! run until program interupted
-      procedure :: Step => computer_step   ! do one step
-      ! communicate with I/O buffers
-      generic :: Set_inbuf => set_inbuf64, set_inbuf128
-      generic :: Get_outbuf => get_outbuf128  
-      generic :: Read_outbuf => read_outbuf64, read_outbuf128
-      procedure :: Isempty_outbuf, Isfull_inbuf
-      procedure :: legacy_setinput, legacy_getoutput
+      ! load program from integer array or file (initialization)
+      generic :: Load => computer_load64, computer_load128 ! @(arr)
+      procedure :: Load_from_file          ! @(file)
+      ! reset (clear memory, reset io-buffers size)
+      procedure :: Reset => computer_reset ! @(inbuf_size, outbuf_size)
+      ! run - run instructions until interuption
+      procedure :: Run => computer_run     ! @(status)
+      ! step - process one instruction (if not waiting for i/o operations)
+      procedure :: Step => computer_step   ! @()  
+      ! I/O BUFFERS
+      ! set_inbuf - send single value to input buffer
+      generic :: Set_inbuf => set_inbuf64, set_inbuf128      ! @(val-in)
+      ! get_outbuf - export buffer to array and clean it
+      generic :: Get_outbuf => get_outbuf128                 ! vals(:)=@()
+      ! read_outbuf - remove just one value from buffer
+      generic :: Read_outbuf => read_outbuf64, read_outbuf128 ! @(val-out)
+      ! isempty_outbuf, isfull_inbuf - logical funs testing buffer state
+      procedure :: Isempty_outbuf, Isfull_inbuf               ! @()
+      procedure :: legacy_setinput, legacy_getoutput          
+      ! PRIVATE GENERICS
       procedure, private :: computer_load64, computer_load128
       procedure, private :: set_inbuf64, set_inbuf128, read_outbuf64
       procedure, private :: get_outbuf64, get_outbuf128, read_outbuf128
@@ -42,10 +52,10 @@
     ! 0 or 2 : echo individual instructions
     ! 0 or 4 : echo I/O operations
     ! 0 or 8 : empty/full buffer complains
-    integer, parameter :: DBGL=12 !15  
+    integer, parameter :: DBGL=0 !15  
 
     ! Adjusting the computer
-    integer, parameter :: IOBUF_SIZE = 3
+    integer, parameter :: IOBUF_SIZE = 3 ! this is the default buffer size
 
   contains
 
@@ -171,7 +181,7 @@ print '(a)', 'computer_load128 called'
       class(computer_t), intent(inout) :: this
       integer, intent(out), optional :: istatus
 !
-! Run the program until stop.
+! Run the program until interupt.
 !
       integer :: istatus0
 
@@ -190,11 +200,10 @@ print '(a)', 'computer_load128 called'
       class(computer_t), intent(inout) :: this
       integer, intent(out) :: ierr
 !
-! Do one instruction.
+! Process single instruction.
 !
       integer :: i, imod(3), jmp, op
       integer(IXB) :: val(3), ad(3), res, tmp_io, op128
-      !integer :: pt(3) 
 
       if (num2bit(DBGL,1)) print '("Pointer at ",i4," op-value ",i0)', &
           this%ptr, this%mem%Read(this%ptr)
@@ -202,7 +211,7 @@ print '(a)', 'computer_load128 called'
       ! Extract parameter mode from the instruction
       op128 = this%mem%Read(this%ptr)
       if (op128 > huge(op)) error stop 'computer_step - op value is 128bit number'
-      op = op128
+      op = int(op128, kind=I4B)
       do i=3,1,-1
         imod(i) = op/10**(i+1)
         op = mod(op, 10**(i+1))
@@ -359,6 +368,9 @@ print '(a)', 'computer_load128 called'
 
     logical function num2bit(val, bit) result(ison)
       integer, intent(in) :: val, bit
+!
+! Helper function to define what diagnostic messages to print
+!
       integer :: val0, i, ison0
       integer, parameter :: MAXBIT=8
       val0 = val
@@ -378,6 +390,29 @@ print '(a)', 'computer_load128 called'
         
 
 
+! =================================================
+! Reading code from file and loading it into memory
+! =================================================
+
+    subroutine load_from_file(this, file)
+      use parse_mod, only : read_strings, string_t, split
+      class(computer_t), intent(out) :: this
+      character(len=*), intent(in) :: file
+
+      type(string_t), allocatable :: lines(:), tokens(:)
+      integer(IXB), allocatable :: iarr(:)
+
+      lines = read_strings(file)
+      if (size(lines)/=1) &
+        error stop 'computer - load_from_file - input file not a single line'
+      call split(lines(1)%str,',',tokens)
+      iarr = tokens % To_int128()
+      call this % Load(iarr)
+      print '("Intcode ",i0," instructions loaded")', this%n
+      print '("[... ",5(i6,1x)," ]")', iarr(max(1,this%n-4):)
+    end subroutine load_from_file
+
+
 
 ! =================================================
 ! Just for the compatibility with version 1 (Day 2)
@@ -391,8 +426,6 @@ print '(a)', 'computer_load128 called'
       call this%mem%write(1, inp(1))
       call this%mem%write(2, inp(2))
     end subroutine legacy_setinput
-
-
 
     integer function legacy_getoutput(this)
       class(computer_t), intent(in) :: this

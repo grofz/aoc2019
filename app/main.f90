@@ -22,6 +22,14 @@ goto 09
 
 09  call day09('inp/1909/input.txt')
 
+10  continue
+    call day10('inp/1910/input.txt')
+    !call day10('inp/1910/sample3.txt')
+    !call day10('inp/1910/sample1.txt')
+stop
+11  continue
+    !call day11('inp/1911/input.txt')
+
   end program main
 
 
@@ -292,16 +300,11 @@ goto 09
     use parse_mod, only : read_strings, string_t, split
     implicit none
     character(len=*), intent(in) :: file
-    type(string_t), allocatable :: lines(:), items(:)
-    integer(I8B), allocatable :: iarr128(:)
     type(computer_t) :: ZX128
     integer(I8B), allocatable :: ans1(:), ans2(:)
 
     ! Read and load Intcode program
-    lines = read_strings(file)
-    if (size(lines)/=1) error stop 'day09 - input file has more than one line'
-    call split(lines(1)%str,',',items)
-    iarr128 = int(items % To_int(), kind=I8B)
+    call ZX128 % Load_from_file(file)
 
     ! Test Program 1
     !iarr128=[109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99] 
@@ -309,9 +312,9 @@ goto 09
     !iarr128=[1102,34915192,34915192,7,4,7,99,0]
     ! Test Program 3
     !iarr128=[104_I8B,1125899906842624_I8B,99_I8B]
+    !call ZX128 % Load(iarr128)
 
-    call ZX128 % Load(iarr128)
-    !print '(10(i8,1x))', items % To_int()
+    ! Part 1
     call ZX128 % Reset(1,1)
     call ZX128 % Set_inbuf(1)
     call ZX128 % Run()
@@ -328,3 +331,50 @@ goto 09
     print '("Is valid answer ?",l2)', ans2(1)==70634
     print *
   end subroutine day09
+
+
+
+  subroutine day10(file)
+    use day1910_mod
+    implicit none
+    character(len=*), intent(in) :: file
+    integer, allocatable :: xypos(:,:)
+    integer :: idstation, ans1, ans2
+
+    call read_input_from_file(file, xypos)
+    call calculate_vectors(xypos,idstation,ans1)
+    print '("Answer 10/1 (visible asteroids ",i0,l2)',ans1, ans1==230
+    call shoot_asteroids(xypos,idstation,ans2)
+  end subroutine day10
+
+
+
+  subroutine day11(file)
+    use intcode_mod, only : computer_t
+    use kinds_m, only : I8B
+    character(len=*), intent(in) :: file
+    integer(I8B) :: inp
+    integer(I8b), allocatable :: buff(:)
+    integer :: status
+    type(computer_t) :: ZX128
+    real :: x
+
+    call ZX128 % Load_from_file(file)
+    call ZX128 % Reset(1,2)
+
+    do
+    !print *, 'input? '
+    !read(*,*) inp
+    call random_number(x)
+    inp = ceiling(2*x)-1
+    if (inp < 0) exit
+    call ZX128 % Set_inbuf(inp)
+    call ZX128 % Run(status)
+    buff = ZX128 % Get_outbuf()
+    print '(*(i3,1x))', buff
+    if (status==-1) exit
+    end do
+
+  end subroutine day11
+
+

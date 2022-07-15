@@ -7,6 +7,7 @@
 !                  array of string_t seems a more robust way
 !
   module parse_mod
+    use kinds_m, only : I8B
     implicit none
     private
     public string_t
@@ -20,6 +21,7 @@
       character(len=:), allocatable :: str
     contains
       procedure :: to_int => string_to_int
+      procedure :: to_int128 => string_to_int128
     end type string_t
     interface string_t
       module procedure string_new
@@ -41,6 +43,13 @@
       if (.not. allocated(this%str)) error stop 'string_to_int - error, string unallocated'
       read(this%str,*) int
     end function string_to_int
+
+    elemental integer(I8B) function string_to_int128(this) result(int)
+      class(string_t), intent(in) :: this
+      if (.not. allocated(this%str)) error stop 'string_to_int - error, string unallocated'
+      read(this%str,*) int
+    end function string_to_int128
+
 
 
 
