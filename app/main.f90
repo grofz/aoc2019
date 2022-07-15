@@ -350,7 +350,7 @@ goto 11
 
   subroutine day11(file)
     use intcode_mod, only : computer_t
-    use day1911_mod
+    use day1911b_mod, only : robot_t
     use kinds_m, only : I8B
     character(len=*), intent(in) :: file
     integer(I8B) :: inp
@@ -358,7 +358,12 @@ goto 11
     integer :: status
     type(computer_t) :: ZX128
     real :: x
+    type(robot_t) :: EMIL
 
+    call EMIL % Init(file)
+    call EMIL % Walk()
+
+    return
     call ZX128 % Load_from_file(file)
     call ZX128 % Reset(1,2)
 

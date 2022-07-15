@@ -52,7 +52,7 @@
     ! 0 or 2 : echo individual instructions
     ! 0 or 4 : echo I/O operations
     ! 0 or 8 : empty/full buffer complains
-    integer, parameter :: DBGL=12 !15  
+    integer, parameter :: DBGL=0 !15  
 
     ! Adjusting the computer
     integer, parameter :: IOBUF_SIZE = 3 ! this is the default buffer size
