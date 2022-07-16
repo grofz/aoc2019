@@ -24,22 +24,20 @@
     end subroutine
 
 
-    subroutine robot_walk(this)
+    subroutine robot_walk(this, initcolor)
       class(robot_t), intent(inout) :: this
+      integer, intent(in) :: initcolor
 
       integer, allocatable :: commands(:)
       integer :: color, status
 
  print '("Robot ready,")'
-          call this%board % Paintcolor(color=WHITE) ! part2
+      call this%board % Paintcolor(color=initcolor)
       MLOOP: do
-        ! send to the computer the actual color
+        ! give computer the actual color
         color = this%board % Getcolor()
- print '("At ",i4,",",i4," hdg ",i0,"    Color ",i0)', &
- this%board%rob_xy, this%board%rob_hdg, color
         call this%ZX128 % Set_inbuf(color)
         call this%ZX128 % Run(status)
- print '("Status code ",i0)', status
 
         select case(status)
         case (SINBUF_EMPTY, SHALT)
@@ -51,10 +49,20 @@
           if (commands(2)<0 .or. commands(1)>2) &
              error stop 'robot_walk - not correct command (1)'
 
- print '("Commands ",i0,1x,i0,"   and moving...")', commands
+          ! repaint and move robot
           call this%board % Paintcolor(color=commands(1))
           call this%board % Maketurn(commands(2))
           call this%board % Forward()
+
+          if (color==commands(1)) then
+            print &
+'("At ",i3,1x,i3,"  painting left at ",i1,".      Turning ",i1,".")', &
+              this%board%rob_xy, color, commands(2)
+          else
+            print &
+'("At ",i3,1x,i3,"  repainting from ",i1" to ",i1,".  Turning ",i1,".")', &
+              this%board%rob_xy, color, commands
+          end if
 
         case default
           error stop 'robot_walk - unexpected  status code'
@@ -66,12 +74,10 @@
       if (size(commands) /= 0) &
         print *, 'WARNING: unprocessed output left'
 
-print *, this%board%getlimits()
-print *, this%board%map%Count()
-      call this%board%print()
-
-
-
+      ! Show the results
+      print '("Painted area ",4(i0,:,", "))', this%board%getlimits()
+      print '("Pixels ",i0)', this%board%map%Count()
+      call this%board%print('.#')
 
     end subroutine robot_walk
 

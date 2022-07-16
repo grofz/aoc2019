@@ -1,6 +1,6 @@
   program main
     implicit none
-goto 11
+goto 12
 
 01  call day01('inp/1901/input.txt')
 
@@ -26,8 +26,11 @@ goto 11
     call day10('inp/1910/input.txt')
     !call day10('inp/1910/sample3.txt')
     !call day10('inp/1910/sample1.txt')
-11  continue
-    call day11('inp/1911/input.txt')
+11  call day11('inp/1911/input.txt')
+
+12  continue
+    call day12('inp/1912/input.txt')
+    !call day12('inp/1912/sample2.txt')
 
   end program main
 
@@ -349,37 +352,41 @@ goto 11
 
 
   subroutine day11(file)
-    use intcode_mod, only : computer_t
     use day1911b_mod, only : robot_t
-    use kinds_m, only : I8B
     character(len=*), intent(in) :: file
-    integer(I8B) :: inp
-    integer(I8b), allocatable :: buff(:)
-    integer :: status
-    type(computer_t) :: ZX128
-    real :: x
     type(robot_t) :: EMIL
 
+    ! Part 1
     call EMIL % Init(file)
-    call EMIL % Walk()
+    call EMIL % Walk(0)
 
-    return
-    call ZX128 % Load_from_file(file)
-    call ZX128 % Reset(1,2)
-
-    do
-    !print *, 'input? '
-    !read(*,*) inp
-    call random_number(x)
-    inp = ceiling(2*x)-1
-    if (inp < 0) exit
-    call ZX128 % Set_inbuf(inp)
-    call ZX128 % Run(status)
-    buff = ZX128 % Get_outbuf()
-    print '(*(i3,1x))', buff
-    if (status==-1) exit
-    end do
-
+    ! Part 2
+    call EMIL % Init(file)
+    call EMIL % Walk(1)
   end subroutine day11
 
+
+
+  subroutine day12(file)
+    use day1912_mod
+    use prime_numbers_mod
+    use kinds_m, only : I8B
+    character(len=*), intent(in) :: file
+    integer, allocatable :: x0(:,:), periods(:)
+    type(mdsimulation_t) :: sim
+    integer(I8b) :: ans
+    integer, parameter :: TEND=1000000
+
+    x0 = positions_from_file(file)
+    call sim % Init(x0,'results/nbody.log')
+    print '("Simulating ",i0," steps...")', tend
+    call sim % Simulate(TEND)
+    print '("Simulation completed. Analyzing orbits...")'
+    call sim % Analyze(periods)
+    print '("Periods of all variables"/,3(i9,:,", "))', periods
+    call sim % Closefiles()
+    ans = get_lcm(periods)
+    print '("Answer is ",i0,l2)', ans, 4686774924_I8B==ans .or. &
+        292653556339368_I8B==ans
+  end subroutine day12
 

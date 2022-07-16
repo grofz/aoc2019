@@ -13,6 +13,7 @@
     public string_t
     public read_strings, split
     public read_numbers
+    public unique_sort
     !public read_pattern
 
     integer, parameter :: DEFAULT_LINE_LENGTH = 80   
@@ -193,6 +194,38 @@
 
 
 
+
+! =======================
+! Unique sort
+! =======================
+
+  function unique_sort(vals) result(outs)
+    integer, intent(in) :: vals(:)
+    integer, allocatable :: outs(:)
+!
+! Return array of soreted unique values from "vals"
+! (source of inspiration: stackoverflow)
+!
+    integer, allocatable :: outs0(:)
+    integer :: min_val, max_val, i
+
+    allocate(outs0(size(vals))) ! maximum possible no of uniques
+    i = 0
+    min_val = minval(vals)-1
+    max_val = maxval(vals)
+    do
+      if (min_val >= max_val) exit
+      i = i + 1
+      min_val = minval(vals, mask=vals>min_val)
+      outs0(i) = min_val
+    end do
+    allocate(outs(i), source=outs0(1:i))
+
+  end function unique_sort
+
+
+
+
  ! =======================
  ! Local helper procedures
  ! =======================
@@ -271,5 +304,6 @@
       end do
 
     end subroutine read_line_from_file
+
 
   end module parse_mod

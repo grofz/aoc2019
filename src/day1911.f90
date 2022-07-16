@@ -1,3 +1,6 @@
+!
+! Board class
+!
   module day1911_mod
     use tree_m, only : rbtr_t, tree_mold, DAT_KIND
     use abstract_container, only : ERR_CONT_OK, ERR_CONT_ISNOT, ERR_CONT_IS
@@ -21,7 +24,7 @@
       type(rbtr_t) :: map
       integer :: rob_xy(2)=[0,0], rob_hdg=HEADING_UP
     contains
-       procedure :: Init => board_init
+       procedure :: Init => board_init ! initialization is COMPULSORY
        procedure :: Getcolor   ! color=@(xy*) 
        procedure :: Paintcolor ! @(xy*,color)
        procedure :: Setrobot   ! @(xy,heading)
@@ -145,51 +148,62 @@
 
      
 
-     subroutine board_print(this)
+     subroutine board_print(this, charset, limits)
        class(board_t), intent(in) :: this
+       character(len=*), intent(in) :: charset
+       integer, intent(in), optional :: limits(4)
 
-       integer :: limits(4), xoffset, yoffset, nx, ny, i, ierr
-       character(len=:), allocatable :: hull(:)
+       character(len=1), parameter :: UNKNOWN_CH='?'
+       integer :: limits0(4), xoffset, yoffset, nx, ny, i, ierr, x1, y1
+       integer :: ch0, ch1
+       character(len=:), allocatable :: lines(:)
        integer(DAT_KIND), allocatable :: handle(:)
        type(hash_t) :: adat
 
-       limits = this%Getlimits()
-       nx = limits(2)-limits(1)+1
-       ny = limits(4)-limits(3)+1
-       xoffset = 1 - limits(1)
-       yoffset = 1 - limits(3)
-       allocate(character(len=nx) :: hull(ny))
-       hull = ''
+       ! Automatic or manual limit
+       if (present(limits)) then
+         limits0 = limits
+       else
+         limits0 = this%Getlimits()
+       end if
+       nx = limits0(2)-limits0(1)+1
+       ny = limits0(4)-limits0(3)+1
+       xoffset = 1 - limits0(1)
+       yoffset = 1 - limits0(3)
+       allocate(character(len=nx) :: lines(ny))
+       lines = ''
 
        if (this%map % Isempty()) then
          print *, 'Warning - empty board'
          return
        end if
        call this%map % Resetcurrent(handle)
+       ch0 = 0
+       !ch1 = ch0 + len(charset)-1
        do
          adat = transfer(this%map % NextRead(handle, ierr), adat)
          if (ierr /= 0) exit
 
          associate(x=>adat%xy(1), y=>adat%xy(2))
-         select case(adat%val)
-         case(BLACK)
-           hull(ny-y-yoffset+1)(nx-x-xoffset+1:nx-x-xoffset+1) = '.'
-           !hull(x+xoffset,y+yoffset) = '.'
-         case(WHITE)
-           hull(ny-y-yoffset+1)(nx-x-xoffset+1:nx-x-xoffset+1) = '#'
-           !hull(x+xoffset,y+yoffset) = '#'
-         case default
-           error stop 'board_print - unexpecded item on board'
-         end select
+         x1 = nx-x-xoffset+1
+         y1 = ny-y-yoffset+1
+         if (x1>=1 .and. x1<=nx .and. y1>=1 .and. y1<=ny) then
+            associate(m => adat%val-ch0+1)
+            if (m>=1 .and. m<=len(charset)) then
+              lines(y1)(x1:x1) = charset(m:m)
+            else
+              lines(y1)(x1:x1) = UNKNOWN_CH
+            end if
+            end associate
+         end if
          end associate
-
-        enddo
+       end do
 
    do i=1,ny
-     print '(a)', hull(i)
+     print '(a)', lines(i)
    end do
 
-     end subroutine
+     end subroutine board_print
 
 
 
