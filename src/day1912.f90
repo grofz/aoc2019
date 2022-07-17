@@ -34,6 +34,8 @@
 
       MAIN: do
         !call this % Print()
+! I could solve part 2 much easier...
+if (this%time==268296 .or. this%time==113028 .or. this%time==231614) call this%print()
         if (this%time==1000) then
            print '("Answer 12/1 is ",i0,l2)', &
            this%Calc_energy(), this%Calc_energy()==7722
@@ -278,10 +280,16 @@ print *, 'Terminator called'
 ! Log times, when a co-oridnate returns back to its initial positions.
 ! (each moon/component is stored in separate file)
 !
+! Works for both cases - case B leads to more complex patterns to be
+! aanalyzed....
+!
       n = size(this%x, 2)
       do i=1,n
       do j=1,3
-        if (this%x(j,i)==this%x_init(j,i) ) then
+ ! case A
+        if (this%x(j,i)==this%x_init(j,i) .and. this%v(j,i)==0) then
+ ! case B
+        !if (this%x(j,i)==this%x_init(j,i) ) then
           if (allocated(this%fids)) then
             inquire(unit=this%fids(j,i), opened=op)
             if (op) write(this%fids(j,i), '(i0)') this%time
@@ -363,6 +371,7 @@ print *, 'Terminator called'
         arrin(i) = arrin(i) - arrin(i-1)
       enddo
       print '("Values read from log file ",i0)', n
+!print *, arrin(1:n)
 
 
       ! Match the pattern. 

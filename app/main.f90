@@ -1,6 +1,6 @@
   program main
     implicit none
-goto 12
+goto 13
 
 01  call day01('inp/1901/input.txt')
 
@@ -31,6 +31,8 @@ goto 12
 12  continue
     call day12('inp/1912/input.txt')
     !call day12('inp/1912/sample2.txt')
+
+13  call day13('inp/1913/input.txt')
 
   end program main
 
@@ -375,7 +377,7 @@ goto 12
     integer, allocatable :: x0(:,:), periods(:)
     type(mdsimulation_t) :: sim
     integer(I8b) :: ans
-    integer, parameter :: TEND=1000000
+    integer, parameter :: TEND=1000000 !700000
 
     x0 = positions_from_file(file)
     call sim % Init(x0,'results/nbody.log')
@@ -390,3 +392,37 @@ goto 12
         292653556339368_I8B==ans
   end subroutine day12
 
+
+
+  subroutine day13(file)
+    use day1913_mod, only : cwd_t
+    character(len=*), intent(in) :: file
+    type(cwd_t) :: GAME
+    integer, allocatable :: dout(:)
+    integer :: status, cnt, inp, score
+
+    call GAME % Init_cwd(file, .true.)
+    call GAME % Play(score)
+    return
+
+
+    cnt = 0
+    do
+      call GAME % Run(status)
+      dout = GAME % Get_outbuf()
+      print *, dout
+
+      if (size(dout) /= 0 .and. dout(3)==2) cnt=cnt+1
+      if (status == -3) cycle
+      if (status == -2) then
+        write(*,'(a)',advance='no') 'Your input? ', inp 
+        read(*,*) inp
+        call GAME % Set_inbuf(inp)
+        cycle
+      end if
+      print '("Status ",i0)', status
+      exit
+    end do
+    print *, 'counter', cnt
+
+  end subroutine day13

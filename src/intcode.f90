@@ -9,8 +9,7 @@
     private
 
     type, public ::  computer_t
-      private
-      !integer, allocatable :: mem(:) 
+      !private
       type(memory_t) :: mem               ! memory is separate class
       integer(IXB), allocatable :: rom(:) ! read-only mem (initial program copy)
       integer(IXB)              :: ptr=0  ! instruction pointer
@@ -21,6 +20,8 @@
       ! load program from integer array or file (initialization)
       generic :: Load => computer_load64, computer_load128 ! @(arr)
       procedure :: Load_from_file          ! @(file)
+      procedure :: Overwrite => computer_overwrite ! @(adr,val)
+      procedure :: Clone => computer_clone ! @(copy)
       ! reset (clear memory, reset io-buffers size)
       procedure :: Reset => computer_reset ! @(inbuf_size, outbuf_size)
       ! run - run instructions until interuption
@@ -147,6 +148,21 @@ print '(a)', 'Computer_load64 called'
       call this % Reset()
 print '(a)', 'computer_load128 called'
     end subroutine computer_load128
+
+
+
+    subroutine computer_clone(this, copy)
+      class(computer_t), intent(in) :: this
+      class(computer_t), intent(out) :: copy
+
+      call this%mem % Clone(copy%mem)
+      copy % rom = this % rom
+      copy % ptr = this % ptr
+      copy % rbs = this % rbs
+      copy % n   = this % n
+      copy % inbuf = this % inbuf
+      copy % outbuf = this % outbuf
+    end subroutine computer_clone
 
 
 
@@ -412,6 +428,14 @@ print '(a)', 'computer_load128 called'
       print '("Intcode ",i0," instructions loaded")', this%n
       print '("[... ",5(i6,1x)," ]")', iarr(max(1,this%n-4):)
     end subroutine load_from_file
+
+
+
+    subroutine computer_overwrite(this, adr, val)
+      class(computer_t), intent(inout) :: this
+      integer, intent(in) :: adr, val
+      call this%mem%write(adr, val)
+    end subroutine computer_overwrite
 
 
 

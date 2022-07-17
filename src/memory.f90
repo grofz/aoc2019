@@ -20,6 +20,7 @@
       generic :: read => memory_read64, memory_read128
       generic :: write => memory_write64, memory_write128
       procedure :: dump => memory_dump
+      procedure :: clone => memory_clone
       procedure, private :: memory_init64, memory_init128, memory_read64 
       procedure, private :: memory_write64, memory_write128, memory_read128
       final :: memory_final
@@ -55,6 +56,30 @@
        this % extmem = rbtr_t(hash_compare)
      end subroutine memory_init128
 
+
+
+     subroutine memory_clone(this, copy)
+       class(memory_t), intent(in) :: this
+       type(memory_t), intent(out) :: copy
+
+       integer(DAT_KIND), allocatable :: handle(:)
+       integer :: ierr
+       type(hash_t) :: adat
+
+       copy % mem = this % mem
+       copy % r0 = this % r0
+       copy % r1 = this % r1
+
+       copy % extmem = rbtr_t(hash_compare)
+       if (.not. this % extmem % Isempty()) then
+         call this%extmem % Resetcurrent(handle)
+         do
+           adat = transfer(this%extmem % NextRead(handle, ierr), adat)
+           if (ierr /= 0) exit
+           call hash_update(copy%extmem, adat%adr, adat%val)
+         end do
+       end if
+     end subroutine memory_clone
 
 
 
@@ -107,7 +132,7 @@
      subroutine memory_dump(this)
        class(memory_t), intent(in) :: this
        if (.not. allocated(this%mem)) error stop 'memory_dump - mem not initialized'
-       print '(8(i9,1x))', this%mem
+       !print '(8(i9,1x))', this%mem
        print '("Extended memory contains ",i0," blocks")', this%extmem%Count()
      end subroutine memory_dump
 
