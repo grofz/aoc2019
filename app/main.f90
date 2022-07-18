@@ -402,7 +402,9 @@ goto 13
     integer :: status, cnt, inp, score
 
     call GAME % Init_cwd(file, .true.)
-    call GAME % Play(score)
+    !call GAME % Play(.false., 0.0, score)
+    !call GAME % Play(.true., 0.00, score)
+    call GAME % Play(.true., 0.02, score)
     return
 
 
