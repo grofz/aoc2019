@@ -33,6 +33,7 @@
        procedure :: Getlimits  ! (x0,x1,y0,y1)=@()
        ! * - if "xy" ommited, then robots position is used
        procedure :: Print => board_print
+       procedure :: Export => board_export
        final :: board_final
     end type board_t
 
@@ -207,6 +208,50 @@
 
 
 
+     function board_export(this, limits) result(map)
+       class(board_t), intent(in) :: this
+       integer, intent(in), optional :: limits(4)
+       integer, allocatable :: map(:,:)
+
+       integer, parameter :: UNKNOWN_CH = 0
+       integer :: limits0(4), xoffset, yoffset, nx, ny, i, ierr, x1, y1
+       integer(DAT_KIND), allocatable :: handle(:)
+       type(hash_t) :: adat
+
+
+       if (this%map % Isempty()) then
+         print *, 'Warning - empty board'
+         allocate(map(0,0))
+         return
+       end if
+
+       ! Automatic or manual limit
+       if (present(limits)) then
+         limits0 = limits
+       else
+         limits0 = this%Getlimits()
+       end if
+       nx = limits0(2)-limits0(1)+1
+       ny = limits0(4)-limits0(3)+1
+       xoffset = 1 - limits0(1)
+       yoffset = 1 - limits0(3)
+       allocate(map(nx, ny))
+       map = UNKNOWN_CH
+
+       call this%map % Resetcurrent(handle)
+       do
+         adat = transfer(this%map % NextRead(handle, ierr), adat)
+         if (ierr /= 0) exit
+
+         associate(x=>adat%xy(1), y=>adat%xy(2))
+           x1 = nx-x-xoffset+1
+           y1 = ny-y-yoffset+1
+           if (x1>=1 .and. x1<=nx .and. y1>=1 .and. y1<=ny) map(x1,y1) = adat%val
+           end associate
+       end do
+     end function board_export
+
+
 ! ==================================
 ! MAP TO STORE THE STATE OF THE HULL
 ! ==================================
@@ -241,7 +286,7 @@
     type(rbtr_t), intent(in) :: hash
     integer, intent(in) :: adr(2)
   !
-  ! Ask, if "key" has been stored. Return "val" or "0" (no entry)
+  ! Ask, if "key" has been stored. Return "val" or "DEFAULT_COLOR" (no entry)
   !
       integer(DAT_KIND), allocatable :: handle(:)
       integer :: ierr

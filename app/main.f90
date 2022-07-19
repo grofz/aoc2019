@@ -1,6 +1,6 @@
   program main
     implicit none
-goto 13
+goto 15
 
 01  call day01('inp/1901/input.txt')
 
@@ -33,6 +33,8 @@ goto 13
     !call day12('inp/1912/sample2.txt')
 
 13  call day13('inp/1913/input.txt')
+
+15  call day15('inp/1915/input.txt')
 
   end program main
 
@@ -396,6 +398,7 @@ goto 13
 
   subroutine day13(file)
     use day1913_mod, only : cwd_t
+    implicit none
     character(len=*), intent(in) :: file
     type(cwd_t) :: GAME
     integer, allocatable :: dout(:)
@@ -426,5 +429,26 @@ goto 13
       exit
     end do
     print *, 'counter', cnt
-
   end subroutine day13
+
+
+
+  subroutine day15(file)
+    use day1915_mod, only : maze_t, mazenode_t, shortest_path
+    use intcode_mod, only : computer_t, SOUTBUF_FULL, SINBUF_EMPTY
+    implicit none
+    character(len=*), intent(in) :: file
+
+    type(maze_t) :: maze
+    type(mazenode_t), allocatable :: nodes(:)
+    type(computer_t) :: ZX128
+    integer :: status, inp, newinp, leakid, homeid
+    integer :: out0
+    integer, allocatable :: freedirs(:), dd(:)
+
+    call maze % Init(file)
+    call maze % Explore_Maze(nodes, homeid, leakid)
+    call maze % Print()
+    call shortest_path(nodes, leakid, homeid, dd)
+    print *
+  end subroutine day15
