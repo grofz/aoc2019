@@ -1,6 +1,6 @@
   program main
     implicit none
-goto 15
+goto 14
 
 01  call day01('inp/1901/input.txt')
 
@@ -33,6 +33,10 @@ goto 15
     !call day12('inp/1912/sample2.txt')
 
 13  call day13('inp/1913/input.txt')
+
+14  continue
+    !call day14('inp/1914/sample4.txt')
+    call day14('inp/1914/input.txt')
 
 15  call day15('inp/1915/input.txt')
 
@@ -436,6 +440,34 @@ goto 15
 
 
 
+  subroutine day14(file)
+    use day1914_mod
+    use list_mod, only : list_t
+    implicit none
+    character(len=*), intent(in) :: file
+
+    type(list_t) :: complist
+    integer, allocatable :: stoch(:,:)
+    integer(I8B)         :: ans1, ans2
+    integer :: i
+
+    call stoch_from_file(file, complist, stoch)
+    
+    do i=1,size(stoch,1)
+      print '(20i4)',stoch(i,:)
+    end do
+    print '(a)',  complist % Print()
+    print *
+
+    call part1_sol(complist, stoch, 1_I8B, ans1)
+    call part2_sol(complist, stoch, 1000000000000_I8B, ans2)
+    print '("Ore consumption (14/1)  ",i0,l2)', -ans1,  -857266==ans1
+    print '("Fuel produces (14/2)    ",i0,l2)', ans2,  2144702==ans2
+    stop
+  end subroutine day14
+
+
+
   subroutine day15(file)
     use day1915_mod, only : maze_t, mazenode_t, shortest_path
     use intcode_mod, only : computer_t, SOUTBUF_FULL, SINBUF_EMPTY
@@ -518,4 +550,4 @@ goto 15
     print *
 
     100 format (40(i2))
-  end subroutine
+  end subroutine day16
