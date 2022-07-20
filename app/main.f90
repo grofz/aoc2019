@@ -36,6 +36,9 @@ goto 15
 
 15  call day15('inp/1915/input.txt')
 
+16  call day16('inp/1916/input.txt')
+
+
   end program main
 
 
@@ -452,3 +455,67 @@ goto 15
     call shortest_path(nodes, leakid, homeid, dd)
     print *
   end subroutine day15
+
+
+
+  subroutine day16(file)
+    use day1916_mod
+    use kinds_m, only : I1B
+    use parse_mod, only : read_strings, string_t
+    implicit none
+    character(len=*), intent(in) :: file
+
+    type(string_t), allocatable :: lines(:)
+    integer, allocatable :: k(:,:), inp(:), out100(:)
+    integer(I1B), allocatable :: inplong(:), outlong(:)
+    integer :: n, nlong, i, offset, ios
+    integer, parameter :: INP_REPEATED=10000
+    real :: t0, t1
+
+    call cpu_time(t0)
+    lines = read_strings(file)
+    if (size(lines)/=1) error stop 'day16 - one line expected in input'
+    inp = sig2num(lines(1)%str)
+    n = size(inp,1)
+
+    ! input for Part 2
+    nlong = n * INP_REPEATED
+    allocate(inplong(nlong))
+    do i = 1, INP_REPEATED
+      inplong((i-1)*n+1:i*n) = int(inp, kind=I1B)
+    end do
+
+    print '("Input")'
+    print 100, inp
+    print '("Input length ",i0)', n
+
+    out100 = fft_phases(inp,100)
+    outlong = fft_phases(inplong,100)
+    call cpu_time(t1)
+
+    !print '("Output")'
+    !print 100, out100 
+
+    ! Part 1 - aking for first 8 digits of "out100"
+    print '("Ans 16/1 ",8i2," is valid?",l2)',  out100(1:8), &
+      all(out100(1:8)==[1,0,1,8,9,3,5,9])
+
+    ! Part 2 - asking about 8 digits after offset
+    read(lines(1)%str(1:7),*,iostat=ios) offset
+    if (ios/=0) error stop 'day 16 - error conversion'
+    if (offset <= size(inplong,1)/2) print *, 'Warning: message in first half'
+
+    print '("Ans 16/2 ",8i2," is valid?",l2)', outlong(offset+1:offset+8), &
+        all(outlong(offset+1:offset+8)==[8,0,7,2,2,1,2,6])
+    print '("Time taken ",f8.3)', t1-t0
+    print *
+!return
+
+    ! Example of kernel
+    print '("Transformation matrix")'
+    k = kernel(32)
+    print '(32(i2))', transpose(k)
+    print *
+
+    100 format (40(i2))
+  end subroutine

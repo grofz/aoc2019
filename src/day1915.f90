@@ -173,24 +173,17 @@
 !
 ! In one room, explore surrounding pixels (if not already known)
 !
-      integer :: curid, i, revi, istat, istat_rev
+      integer :: dir, revdir, stat1, stat2
 
-      curid = this%map % Getcolor(this%robot)
-      if (curid < 1 .or. curid > this%ntop) &
-          error stop 'maze_explore - current pixel not found'
-
-      do i=1, 4
-        revi = reverse_direction(i)
-        if (this%top(curid) % ngbs(i) > 0) cycle ! direction is known
-        call this % Move(i,istat)
-        if (istat > 0) then
+      do dir=1, 4
+        revdir = reverse_direction(dir)
+        if (this%top(this%curid) % ngbs(dir) > 0) cycle ! direction is known
+        call this % Move(dir, stat1)
+        if (stat1 > 0) then
           ! direction was walkable, return back
-          call this % Move(revi,istat_rev)
-        else
-          ! there is a wall in that direction
-          istat_rev = 1
+          call this % Move(revdir, stat2)
+          if (stat2 == 0) error stop 'maze_explore - returning back failed'
         end if
-        if (istat_rev == 0) error stop 'maze_explore - returning back failed'
       end do
     end subroutine Explore_room
 
@@ -231,14 +224,7 @@
 
       ! Direction must be between 1 and 4. Get direction to backtrack and
       ! verify source pixel is known.
-      select case(dir)
-      case(1,3)
-        revdir = dir+1
-      case(2,4)
-        revdir = dir-1
-      case default
-        error stop 'maze_move - invalid direction' 
-      end select
+      revdir = reverse_direction(dir)
       curpos = this%robot + DIRVEC(:,dir)
       revid = this%map % Getcolor(this%robot)
       curid = this%map % Getcolor(curpos)
@@ -404,10 +390,8 @@
 !
 ! Get all free directions (WALL, LEAK, HOME)
 !
-      integer :: i, id, wrk(4), nfree
-      id = this%map % Getcolor(this%robot)
-      if (id < 1 .or. id > this%ntop) error stop 'maze_freedirs - current pixel not found'
-      associate (ngbs => this%top(id)%ngbs)
+      integer :: i, wrk(4), nfree
+      associate (ngbs => this%top(this%curid)%ngbs)
         nfree = 0
         do i=1,4
           if (ngbs(i) < 1 .or. ngbs(i) > this%ntop) cycle ! ignore unexplored directions
@@ -508,7 +492,7 @@
 
         do j=1,4
           idngb = nodes(i) % ngbs(j) 
-          if (idngb <= 0) cycle    ! skip "null" beighbors
+          if (idngb <= 0) cycle    ! skip "null" neighbors
           if (isdone(idngb)) cycle ! skip "visited" neighbors
           if (dd(idngb) > dd(i)+1) then
             dd(idngb) = dd(i)+1
