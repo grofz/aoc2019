@@ -1,6 +1,6 @@
   program main
     implicit none
-goto 14
+goto 17
 
 01  call day01('inp/1901/input.txt')
 
@@ -41,6 +41,8 @@ goto 14
 15  call day15('inp/1915/input.txt')
 
 16  call day16('inp/1916/input.txt')
+
+17  call day17('inp/1917/input.txt')
 
 
   end program main
@@ -551,3 +553,38 @@ goto 14
 
     100 format (40(i2))
   end subroutine day16
+
+
+
+  subroutine day17(file)
+    use intcode_mod, only : computer_t
+    use day1917_mod, only : scaffold_t, camera_view, get_crossings, get_fullpath, run_part2
+    implicit none
+    character(len=*), intent(in) :: file
+
+    type(computer_t) :: ZX
+    type(scaffold_t) :: scaffold
+    integer :: istat, val, ans1
+    integer, allocatable :: cpos(:,:)
+    character(len=:), allocatable :: fpath
+
+    ! Part 1
+    call ZX % Load_from_File(file)
+    call ZX % Reset(1,1)
+    call scaffold % Init()
+    call camera_view(scaffold, ZX)
+    !call scaffold % Print('',ismirror=[.false.,.false.])
+    call get_crossings(scaffold, ans1, cpos)
+    fpath = get_fullpath(scaffold)
+    print '(a)', fpath
+    print *
+
+    ! Analyze full path and compress it
+    ! TODO - done manualy for now
+
+    ! Part 2
+    print *, 'Part2'
+    call run_part2(file,'inp/1917/path.txt')
+    print *
+  end subroutine day17
+

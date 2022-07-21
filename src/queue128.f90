@@ -18,6 +18,7 @@
       integer :: n=-1      ! actual number of items
     contains
       procedure :: size => queue_size
+      procedure :: maxsize => queue_maxsize
       procedure :: isempty => queue_isempty
       procedure :: isfull => queue_isfull
       procedure :: export => queue_export
@@ -71,6 +72,17 @@
  !
       queue_size = this % n
     end function queue_size
+
+
+
+    pure integer function queue_maxsize(this)
+      class(queue_t), intent(in) :: this
+ !
+ ! Maximum size of the queue
+ !
+      queue_maxsize = this % nmax
+    end function queue_maxsize
+
 
 
 

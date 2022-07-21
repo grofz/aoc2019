@@ -149,14 +149,16 @@
 
      
 
-     subroutine board_print(this, charset, limits)
+     subroutine board_print(this, charset, limits, ismirror)
        class(board_t), intent(in) :: this
        character(len=*), intent(in) :: charset
        integer, intent(in), optional :: limits(4)
+       logical, intent(in), optional :: ismirror(2)
 
        character(len=1), parameter :: UNKNOWN_CH='?'
        integer :: limits0(4), xoffset, yoffset, nx, ny, i, ierr, x1, y1
        integer :: ch0, ch1
+       logical :: ismirror0(2)
        character(len=:), allocatable :: lines(:)
        integer(DAT_KIND), allocatable :: handle(:)
        type(hash_t) :: adat
@@ -174,6 +176,10 @@
        allocate(character(len=nx) :: lines(ny))
        lines = ''
 
+       ! Mirror axis when printing?
+       ismirror0 = .true.
+       if (present(ismirror)) ismirror0 = ismirror
+
        if (this%map % Isempty()) then
          print *, 'Warning - empty board'
          return
@@ -186,12 +192,22 @@
          if (ierr /= 0) exit
 
          associate(x=>adat%xy(1), y=>adat%xy(2))
-         x1 = nx-x-xoffset+1
-         y1 = ny-y-yoffset+1
+         if (ismirror0(1)) then
+           x1 = nx-x-xoffset+1
+         else
+           x1 = x+xoffset
+         endif
+         if (ismirror0(2)) then
+           y1 = ny-y-yoffset+1
+         else
+           y1 = y+yoffset
+         endif
          if (x1>=1 .and. x1<=nx .and. y1>=1 .and. y1<=ny) then
             associate(m => adat%val-ch0+1)
             if (m>=1 .and. m<=len(charset)) then
               lines(y1)(x1:x1) = charset(m:m)
+            elseif (m-1>=32 .and. m-1<=126) then ! ASCII
+              lines(y1)(x1:x1) = char(m-1)
             else
               lines(y1)(x1:x1) = UNKNOWN_CH
             end if
@@ -208,13 +224,15 @@
 
 
 
-     function board_export(this, limits) result(map)
+     function board_export(this, limits, ismirror) result(map)
        class(board_t), intent(in) :: this
        integer, intent(in), optional :: limits(4)
+       logical, intent(in), optional :: ismirror(2)
        integer, allocatable :: map(:,:)
 
        integer, parameter :: UNKNOWN_CH = 0
        integer :: limits0(4), xoffset, yoffset, nx, ny, i, ierr, x1, y1
+       logical :: ismirror0(2)
        integer(DAT_KIND), allocatable :: handle(:)
        type(hash_t) :: adat
 
@@ -238,16 +256,28 @@
        allocate(map(nx, ny))
        map = UNKNOWN_CH
 
+       ! Mirror axis when printing?
+       ismirror0 = .true.
+       if (present(ismirror)) ismirror0 = ismirror
+
        call this%map % Resetcurrent(handle)
        do
          adat = transfer(this%map % NextRead(handle, ierr), adat)
          if (ierr /= 0) exit
 
          associate(x=>adat%xy(1), y=>adat%xy(2))
-           x1 = nx-x-xoffset+1
-           y1 = ny-y-yoffset+1
+           if (ismirror(1)) then
+             x1 = nx-x-xoffset+1
+           else
+             x1 = x+xoffset
+           end if
+           if (ismirror(2)) then
+             y1 = ny-y-yoffset+1
+           else
+             y1 = y+yoffset
+           end if
            if (x1>=1 .and. x1<=nx .and. y1>=1 .and. y1<=ny) map(x1,y1) = adat%val
-           end associate
+         end associate
        end do
      end function board_export
 

@@ -47,6 +47,7 @@
     integer, parameter :: OPADD=1, OPMUL=2, OPIN=3, OPOUT=4, OPEND=99
     integer, parameter :: OPJMP_TRUE=5, OPJMP_FALSE=6, OPLT=7, OPEQ=8, OPADJ=9
     integer, parameter, public :: SHALT=-1, SRUNNING=0, SINBUF_EMPTY=-2, SOUTBUF_FULL=-3
+    integer, parameter, public :: SOUTBUF_READY=3
 
     ! Debugging mode (DBGL is a sum of items)
     ! 0 or 1 : echo instruction pointer
@@ -83,14 +84,16 @@
       integer, allocatable :: vals128(:)
       vals128 = this%outbuf % Export()
       vals = vals128 ! auto conversion from 128 to 64?
-      this%outbuf = queue_t(maxsize=IOBUF_SIZE)
+      !this%outbuf = queue_t(maxsize=IOBUF_SIZE)
+      this%outbuf = queue_t(maxsize=this%outbuf % Maxsize())
     end function
 
     function get_outbuf128(this) result(vals)
       class(computer_t), intent(inout) :: this
       integer(IXB), allocatable :: vals(:)
       vals = this%outbuf % Export()
-      this%outbuf = queue_t(maxsize=IOBUF_SIZE)
+      !this%outbuf = queue_t(maxsize=IOBUF_SIZE)
+      this%outbuf = queue_t(maxsize=this%outbuf % Maxsize())
     end function
 
 
@@ -339,6 +342,7 @@ print '(a)', 'computer_load128 called'
       case(OPOUT)
         tmp_io = val(1)
         call this%outbuf % Insert(tmp_io)
+        if (this%outbuf % Isfull()) ierr = SOUTBUF_READY
         if (num2bit(DBGL,3)) &
             print '("IO writing ",i0," (",i0,"). Output buffer items now ",i0)', &
             ad(1), tmp_io, this%outbuf % Size()
