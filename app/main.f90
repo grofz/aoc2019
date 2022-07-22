@@ -1,6 +1,6 @@
   program main
     implicit none
-goto 17
+goto 18
 
 01  call day01('inp/1901/input.txt')
 
@@ -43,6 +43,10 @@ goto 17
 16  call day16('inp/1916/input.txt')
 
 17  call day17('inp/1917/input.txt')
+
+18  continue
+    !call day18('inp/1918/sample4.txt')
+    call day18('inp/1918/input.txt')
 
 
   end program main
@@ -558,7 +562,7 @@ goto 17
 
   subroutine day17(file)
     use intcode_mod, only : computer_t
-    use day1917_mod, only : scaffold_t, camera_view, get_crossings, get_fullpath, run_part2
+    use day1917_mod, only : scaffold_t, camera_view, get_crossings, get_fullpath, run_part2, compress_path
     implicit none
     character(len=*), intent(in) :: file
 
@@ -586,5 +590,63 @@ goto 17
     print *, 'Part2'
     call run_part2(file,'inp/1917/path.txt')
     print *
+
+    ! test
+    call compress_path(fpath, 'tmp')
   end subroutine day17
+
+
+
+  subroutine day18(file)
+    use day1918_mod
+    use parse_mod, only : read_pattern
+    use graph_mod, only : graph_t
+    implicit none
+    character(len=*), intent(in) :: file
+
+    character(len=1), allocatable :: raw(:,:)
+    type(graph_t) :: g, g2
+    type(state_t) :: state_now, wrk, sout
+    type(state_t), allocatable :: states_next(:)
+    integer :: i
+
+    raw = read_pattern(file)
+    print *, size(raw,1), size(raw,2)
+    g = graph_from_raw(raw)
+    call g % Listvertices()
+
+    print *, 'Second pass'
+    g2 = graph2_from_graph(g)
+    call g2 % Listvertices()
+
+    state_now = state_t(g2)
+    !call search(state_now, g2, [0], sout)
+    call search2(state_now, g2, sout)
+    
+    print *, 'State out', sout%cost
+    return
+
+
+    print *, 'State now'
+    print *, state_now%pos, state_now%locked, state_now%cost
+    states_next = list_next_allowed(g2, state_now)
+    do i=1,size(states_next)
+    print *, 'State next'
+      wrk = states_next(i)
+      print *, wrk%pos, wrk%locked, wrk%cost
+    end do
+
+    !druhe kolo
+    print *, 'Second step' 
+    states_next = list_next_allowed(g2, states_next(1))
+    do i=1,size(states_next)
+    print *, 'State next'
+      wrk = states_next(i)
+      print *, wrk%pos, wrk%locked, wrk%cost
+    end do
+
+
+
+
+  end subroutine day18
 

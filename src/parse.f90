@@ -12,7 +12,7 @@
     private
     public string_t
     public read_strings, split
-    public read_numbers
+    public read_numbers, read_pattern
     public unique_sort
     !public read_pattern
 
@@ -159,7 +159,6 @@
 
 
 
-! old version - not used 
     function read_pattern(file) result(aa)
       character(len=*), intent(in) :: file
       character(len=1), allocatable :: aa(:,:)

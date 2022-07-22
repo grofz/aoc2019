@@ -23,11 +23,13 @@
 !    - if frequency is more than (3?), mark them and make sure other sequences do not
 !      overlap
 !
+! Start with the beginning and with the end
 
 
   module day1917_mod
     use day1911_mod, only : board_t
     use intcode_mod, only : computer_t, SOUTBUF_READY, SINBUF_EMPTY, SHALT
+    use parse_mod, only : string_t, split
     implicit none
 
     type, public, extends(board_t) :: scaffold_t
@@ -257,6 +259,61 @@
       close(fid)
       print'("Validation (17/2) part two ?",l2)', ans==1022165
     end subroutine run_part2
+
+
+
+    subroutine compress_path(fpath, fileout)
+      character(len=*), intent(in) :: fpath, fileout
+
+      type(string_t), allocatable :: tokens(:), tmp
+      character(len=:), allocatable :: patA, patB, patC, wpath
+      integer, allocatable :: ipatA(:)
+      integer :: i0, i1, k, a0, a1, j
+      integer :: nb, iprev
+      logical :: is_ok
+
+      wpath = fpath
+      call split(fpath,',',tokens)
+      print '("Number of tokens ",i0)', size(tokens)
+
+      ! Find token sequence from the start. Maximum is 10 tokens
+      a0 = 1
+      allocate(ipatA(0))
+      do k=10,6,-1 
+        a1 = a0+k-1 ! end of tested sequence
+        do i0=a1+1, size(tokens)-k+1 
+          is_ok = .true.
+          do j=0,k-1
+            if (tokens(a0+j)%str==tokens(i0+j)%str) cycle
+            is_ok = .false.
+            exit
+          enddo
+          if (.not. is_ok) cycle
+          ! match found
+          ipatA = [ipatA, i0]
+          print '("Match found: ",i0," tokens from ",i0," match start sequence")', &
+            k, i0
+        enddo
+        if (size(ipatA)>=3) exit
+        print *, 'Size k=',k,'not succesful. trying next'
+        deallocate(ipatA)
+        allocate(ipatA(0))
+      end do
+
+   !  iprev = 0
+   !  allocate(tmp(0))
+   !  do j=0, size(ipatA)
+   !    if (j==0) then
+   !      i0 = 1
+   !    else
+   !      i0 = ipatA(j)
+   !    endif
+
+
+
+   !  end do
+
+    end subroutine
 
 
   end module day1917_mod
