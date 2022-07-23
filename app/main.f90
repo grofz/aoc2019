@@ -45,8 +45,10 @@ goto 18
 17  call day17('inp/1917/input.txt')
 
 18  continue
-    !call day18('inp/1918/sample4.txt')
-    call day18('inp/1918/input.txt')
+    !call day18('inp/1918/sample4.txt',1)
+    !call day18('inp/1918/input.txt',1)
+    !call day18('inp/1918/sampleB4.txt',2)
+    call day18('inp/1918/inputB.txt',2)
 
 
   end program main
@@ -597,56 +599,42 @@ goto 18
 
 
 
-  subroutine day18(file)
+  subroutine day18(file, mode)
     use day1918_mod
     use parse_mod, only : read_pattern
     use graph_mod, only : graph_t
     implicit none
     character(len=*), intent(in) :: file
+    integer, intent(in) :: mode
 
     character(len=1), allocatable :: raw(:,:)
     type(graph_t) :: g, g2
-    type(state_t) :: state_now, wrk, sout
-    type(state_t), allocatable :: states_next(:)
-    integer :: i
+    type(state_t) :: s0, sfinal
+    type(state_t), allocatable :: snext(:)
 
     raw = read_pattern(file)
-    print *, size(raw,1), size(raw,2)
+    print '("Labyrinth size ",i0," x ",i0)', size(raw,1), size(raw,2)
     g = graph_from_raw(raw)
     call g % Listvertices()
 
-    print *, 'Second pass'
+    print '("Reducing the graph...")'
     g2 = graph2_from_graph(g)
     call g2 % Listvertices()
 
-    state_now = state_t(g2)
-    !call search(state_now, g2, [0], sout)
-    call search2(state_now, g2, sout)
-    
-    print *, 'State out', sout%cost
-    return
+    select case(mode)
+    case(1)
+      print '("Solving part 1...")'
+      s0 = state_t(g2)
+      call search2(s0, g2, 1, sfinal)
+      print '("Shortest path (18/1) ", i0)', sfinal%cost
+      print '("Validation ?",l2)', sfinal%cost==4770
 
-
-    print *, 'State now'
-    print *, state_now%pos, state_now%locked, state_now%cost
-    states_next = list_next_allowed(g2, state_now)
-    do i=1,size(states_next)
-    print *, 'State next'
-      wrk = states_next(i)
-      print *, wrk%pos, wrk%locked, wrk%cost
-    end do
-
-    !druhe kolo
-    print *, 'Second step' 
-    states_next = list_next_allowed(g2, states_next(1))
-    do i=1,size(states_next)
-    print *, 'State next'
-      wrk = states_next(i)
-      print *, wrk%pos, wrk%locked, wrk%cost
-    end do
-
-
-
-
+    case(2)
+      print '("Solving part 2...")'
+      s0 = state_t(g2)
+      call search2(s0, g2, 4, sfinal)
+      print '("Shortest path (18/2) ", i0)', sfinal%cost
+      print '("Validation ?",l2)', sfinal%cost==1578
+    end select
   end subroutine day18
 
