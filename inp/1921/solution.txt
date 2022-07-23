@@ -1,0 +1,30 @@
+>> NOT A T
+>> NOT B J
+>> OR T J
+>> NOT C T
+>> OR T J
+>> AND D J
+>> WALK
+
+ Computer says 19355391
+
+
+ Intcode 2050 instructions loaded
+ >> NOT B J
+ >> OR T J
+ >> NOT C T
+ >> OR T J
+ >> AND D J
+
+ >> NOT E T
+ >> AND E T
+ >> OR E T
+ >> OR H T
+ >> AND T J
+ >> RUN
+
+Running...
+
+
+Computer says 1143770635
+Computer halts.

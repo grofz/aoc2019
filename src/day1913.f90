@@ -1,6 +1,7 @@
   module day1913_mod
     use kinds_m, only : I8B
-    use intcode_mod, only : computer_t, SOUTBUF_FULL, SINBUF_EMPTY, SHALT
+    use intcode_mod, only : computer_t, SOUTBUF_FULL, SINBUF_EMPTY, SHALT, &
+        SOUTBUF_READY
     implicit none
 
     ! display size
@@ -12,7 +13,7 @@
     integer, parameter :: ID_BALL=4, ID_WALL=1, ID_PADDLE=3, ID_BLOCK=2, ID_EMPTY=0
 
     ! CWD as "computer with display"
-    type, public, extends(computer_t) :: cwd_t 
+    type, public, extends(computer_t) :: cwd_t
       character(len=1), allocatable :: dsp(:,:)
       integer :: score = 0
       integer :: bpos(2)=-1, bpos0(2)=-1
@@ -23,7 +24,7 @@
       procedure :: Init_cwd
       procedure :: Display
       procedure :: Play, Process_output, Predict_ball
-    end type 
+    end type
 
   contains
 
@@ -58,7 +59,7 @@
 ! Use saved position instead. Return "dsp" to its current state at the end.
 !
       sval = DUMMY
-      if (.not. any(this%ppos<0)) then 
+      if (.not. any(this%ppos<0)) then
         ! paddle position is not uknown
         sx = this%ppos(1)
         sy = this%ppos(2)
@@ -115,7 +116,7 @@
         call this % Run(status)
 
         select case(status)
-        case (SOUTBUF_FULL, SHALT)  
+        case (SOUTBUF_FULL, SHALT, SOUTBUF_READY)
           call this % Process_output
           cycle
         case (SINBUF_EMPTY)
@@ -156,7 +157,7 @@
       dout = int(dout128)
       if (size(dout)/=3) error stop 'process_output - 3 values expected'
       ! dout = [x-position, y-position, char-code]
-      ! positions are in the range 0 to N-1 
+      ! positions are in the range 0 to N-1
 
       if (dout(1)==-1 .and. dout(2)==0) then
         ! output score
@@ -166,7 +167,7 @@
           dout(2)>SCREEN_Y) then
         error stop 'process_output - out of screen coordinates'
 
-      else  
+      else
         ! usefull for debugging - what Intcode does
         print '("At position [",i0,",",i0,"] pixel ",a," overwritten by ",a)',&
             dout(1),dout(2), &
@@ -178,7 +179,7 @@
         this%dsp(dout(1), dout(2)) = TILES(dout(3))
 
         ! Record position of ball and paddle
-        if (dout(3)==ID_BALL) then           
+        if (dout(3)==ID_BALL) then
           ! Intcode wants to display the ball
           this%bpos0 = this%bpos
           this%bpos(1)=dout(1)
@@ -214,7 +215,7 @@
           end select
 
 
-        else if (dout(3)==3) then      
+        else if (dout(3)==3) then
           ! Paddle displayed / Process only first time (as the value is not actual later)
           if (this%ppos(1)<0) then
             this%ppos(1)=dout(1)
@@ -263,7 +264,7 @@
       jbp = this%ppos(2)-x(2)
       where (dsp0==TILES(ID_PADDLE)) dsp0=TILES(ID_EMPTY)
       if (jbp>=-1 .and. jbp<=1 .and. ibp>=-1 .and. ibp<=1) &
-          dsp0(ibp,jbp) = TILES(ID_PADDLE) 
+          dsp0(ibp,jbp) = TILES(ID_PADDLE)
 
       if (any(v==0)) then
         print *, 'prediction fails - zero velocity'
@@ -371,7 +372,7 @@
       ! CASE (I+II)
       ! # #        # .                                     # # .
       ! # o   or   . o       ---> bounce both directions   # 2 .
-      !                                                    . . 13   
+      !                                                    . . 13
       if (is_dia .and. (is_hor .eqv. is_ver)) then
         swap_v = .true.
 
@@ -392,7 +393,7 @@
       ! CASE(V) + CASE(VI)
       ! # #     . #                                       # # ,
       ! . o  or . o          ---> bounce vertically       . 2 .
-      !                                                   3 . 1 
+      !                                                   3 . 1
       else if (is_ver) then
         swap_v(2) = .true.
 
@@ -432,12 +433,12 @@
       call clone % Set_inbuf(0)  ! provide input...
       do
         ! run and wait for the output that plots the ball
-        call clone % Run(state)  
+        call clone % Run(state)
         outbuf = clone % Get_outbuf()
         if (outbuf(3)==ID_BALL) then
           x0(1) = outbuf(1)
           x0(2) = outbuf(2)
-          exit 
+          exit
         end if
 
         ! alternative exit

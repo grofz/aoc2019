@@ -1,6 +1,6 @@
   program main
     implicit none
-goto 18
+goto 21
 
 01  call day01('inp/1901/input.txt')
 
@@ -50,6 +50,10 @@ goto 18
     !call day18('inp/1918/sampleB4.txt',2)
     call day18('inp/1918/inputB.txt',2)
 
+21  call day21('inp/1921/input.txt')
+stop
+
+25  call day25('inp/1925/input.txt') ! password
 
   end program main
 
@@ -91,7 +95,7 @@ goto 18
 
   subroutine day02(file)
     !use day1902_mod
-    !use day1905_mod 
+    !use day1905_mod
     use day1907_mod ! Version 2.5 computer from day 7
     use parse_mod, only : read_strings, split, string_t
     implicit none
@@ -328,7 +332,7 @@ goto 18
     call ZX128 % Load_from_file(file)
 
     ! Test Program 1
-    !iarr128=[109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99] 
+    !iarr128=[109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99]
     ! Test Program 2
     !iarr128=[1102,34915192,34915192,7,4,7,99,0]
     ! Test Program 3
@@ -435,7 +439,7 @@ goto 18
       if (size(dout) /= 0 .and. dout(3)==2) cnt=cnt+1
       if (status == -3) cycle
       if (status == -2) then
-        write(*,'(a)',advance='no') 'Your input? ', inp 
+        write(*,'(a)',advance='no') 'Your input? ', inp
         read(*,*) inp
         call GAME % Set_inbuf(inp)
         cycle
@@ -460,7 +464,7 @@ goto 18
     integer :: i
 
     call stoch_from_file(file, complist, stoch)
-    
+
     do i=1,size(stoch,1)
       print '(20i4)',stoch(i,:)
     end do
@@ -534,7 +538,7 @@ goto 18
     call cpu_time(t1)
 
     !print '("Output")'
-    !print 100, out100 
+    !print 100, out100
 
     ! Part 1 - aking for first 8 digits of "out100"
     print '("Ans 16/1 ",8i2," is valid?",l2)',  out100(1:8), &
@@ -638,3 +642,24 @@ goto 18
     end select
   end subroutine day18
 
+
+
+  subroutine day21(file)
+    use ascii_mod
+    implicit none
+    character(len=*), intent(in) :: file
+
+    call run_ascii(file)
+  end subroutine day21
+
+
+  subroutine day25(file)
+    use ascii_mod
+    implicit none
+    character(len=*), intent(in) :: file
+
+    call run_ascii(file)
+    ! candy cane, mouse, coin,semiconductor
+    ! pass 100667393
+    !      100667393
+  end subroutine day25
