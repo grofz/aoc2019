@@ -1,6 +1,6 @@
   program main
     implicit none
-goto 21
+goto 19
 
 01  call day01('inp/1901/input.txt')
 
@@ -50,8 +50,10 @@ goto 21
     !call day18('inp/1918/sampleB4.txt',2)
     call day18('inp/1918/inputB.txt',2)
 
-21  call day21('inp/1921/input.txt')
+19  call day19('inp/1919/input.txt')
 stop
+
+21  call day21('inp/1921/input.txt')
 
 25  call day25('inp/1925/input.txt') ! password
 
@@ -641,6 +643,21 @@ stop
       print '("Validation ?",l2)', sfinal%cost==1578
     end select
   end subroutine day18
+
+
+
+  subroutine day19(file)
+    use day1919_mod
+    implicit none
+    character(len=*), intent(in) :: file
+
+    type(scanner_t) :: SC
+    integer :: ans1, ans2
+
+    call SC % Init(file)
+    call test_beam(SC, ans1)
+    call track_beam(SC, 100, ans2)
+  end subroutine day19
 
 
 
