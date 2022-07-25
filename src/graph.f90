@@ -39,6 +39,7 @@
       procedure :: GetEdge => graph_getedge
       procedure :: Nvertices => graph_nvertices
       procedure :: Nedges => graph_nedges
+      procedure :: Findvertex => graph_findvertex
     end type
     interface graph_t
       module procedure graph_newempty
@@ -240,6 +241,12 @@
       ne = this % ne
     end function
 
+    pure function graph_findvertex(this, lab) result(ind)
+      class(graph_t), intent(in)   :: this
+      character(len=*), intent(in) :: lab
+      integer :: ind
+      ind = findvertex0(this%vlist(1:this%nv), lab)
+    end function
 
 
 

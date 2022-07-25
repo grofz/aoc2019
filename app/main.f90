@@ -1,6 +1,6 @@
   program main
     implicit none
-goto 19
+goto 20
 
 01  call day01('inp/1901/input.txt')
 
@@ -51,6 +51,10 @@ goto 19
     call day18('inp/1918/inputB.txt',2)
 
 19  call day19('inp/1919/input.txt')
+
+20  continue
+   !call day20('inp/1920/sample3.txt')
+    call day20('inp/1920/input.txt')
 stop
 
 21  call day21('inp/1921/input.txt')
@@ -658,6 +662,68 @@ stop
     call test_beam(SC, ans1)
     call track_beam(SC, 100, ans2)
   end subroutine day19
+
+
+
+  subroutine day20(file)
+    use day1920_mod
+    use parse_mod, only : read_pattern
+    use graph_mod, only : graph_t
+    implicit none
+    character(len=*), intent(in) :: file
+
+    character(len=1), allocatable :: raw(:,:)
+    type(graph_t) :: g0, g1, g2
+    integer :: i, ans
+    integer, parameter :: NLEV=25
+    real :: t0, t1, t2
+
+    raw = read_pattern(file,.true.)
+    print '("Labyrinth size ",i0," x ",i0)', size(raw,1), size(raw,2)
+
+    ! Part 1
+    print '(a)','Constructing graph...'
+    call cpu_time(t0)
+    g0 = graph_from_raw(raw,1)
+    call cpu_time(t1)
+    print '("...done. Time taken ",f8.3," seconds."/)', t1-t0
+
+    print '(a)','Searching shortest path...'
+    ans = shortest_distance(g0)
+    call cpu_time(t2)
+    print '("...done. Time taken ",f8.3," seconds."/)', t2-t1
+
+    print '("Shortest path (20/1) is ",i0,l2)', ans, ans==482
+
+    ! Part 2
+    print '(a)','Constructing graph...'
+    call cpu_time(t1)
+    g0 = graph_from_raw(raw,2)
+    call cpu_time(t2)
+    print '("...done. Time taken ",f8.3," seconds."/)', t2-t1
+
+    print '(a)','Reducing...'
+    call cpu_time(t1)
+    g1 = reduced_graph(g0)
+    !call g1 % Listvertices()
+    call cpu_time(t2)
+    print '("...done. Time taken ",f8.3," seconds."/)', t2-t1
+
+    print '(a,i0,a)','Making recursive maze down to level ',NLEV,'...'
+    call cpu_time(t1)
+    g2 = repeat_graph(g1, NLEV)
+    call cpu_time(t2)
+    print '("...done. Time taken ",f8.3," seconds."/)', t2-t1
+
+    print '(a)','Searching shortest path...'
+    call cpu_time(t1)
+    ans = shortest_distance(g2)
+    call cpu_time(t2)
+    print '("...done. Time taken ",f8.3," seconds."/)', t2-t1
+
+    print '("Shortest path (20/2) is ",i0,l2)', ans, ans==5912
+    print '("Total time ",f0.3," seconds."/)', t2-t0
+  end subroutine day20
 
 
 

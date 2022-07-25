@@ -159,14 +159,20 @@
 
 
 
-    function read_pattern(file) result(aa)
+    function read_pattern(file, trailing_spaces) result(aa)
       character(len=*), intent(in) :: file
+      logical, intent(in), optional :: trailing_spaces
       character(len=1), allocatable :: aa(:,:)
 !
 ! Read "character" 2D matrix from the file.
 !
-      integer :: fid, nrow, ncol, ios, i
+      integer :: fid, nrow, ncol, ios, i, nread
       character(len=5000) :: line
+      logical :: mode2
+
+      ! Regular or iregular pattersn
+      mode2 = .false.
+      if (present(trailing_spaces)) mode2 = trailing_spaces
 
       ! read no of rows, cols, and make sure all rows are of the same
       ! length
@@ -174,11 +180,27 @@
       nrow = 0
       ncol = -1
       do
-        read(fid,'(a)',iostat=ios) line
-        if (ios /= 0) exit
-        if (ncol==-1) ncol = len_trim(line)
-        if (len_trim(line) /= ncol) &
-          error stop 'read_pattern - not all lines have same length'
+        if (.not. mode2) then
+          ! regular case
+          read(fid,'(a)',iostat=ios) line
+          if (ios /= 0) exit
+          if (ncol==-1) ncol = len_trim(line)
+          if (len_trim(line) /= ncol) &
+            error stop 'read_pattern - not all lines have same length'
+        else
+          ! blanks at the end of lines are important
+          read(fid,'(a)',advance='no',size=nread,iostat=ios) line
+          if (is_iostat_end(ios) .or. is_iostat_eor(ios)) then
+            if (nread==0) exit
+            if (ncol==-1) ncol = nread
+            if (nread /= ncol) &
+              error stop 'read_pattern - not all lines have same length'
+          else if (ios==0) then
+            error stop 'input line too long'
+          else
+            error stop 'reading error'
+          end if
+        end if
         nrow = nrow + 1
       end do
 
@@ -190,7 +212,6 @@
       close(fid)
       aa = transpose(aa)
     end function read_pattern
-
 
 
 

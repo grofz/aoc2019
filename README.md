@@ -18,3 +18,12 @@ Solutions to Advent of Code 2019 in Fortran
 - Day 14: Space Stoichiometry 
 - Day 15: Oxygen System
 - Day 16: Flawed Frequency Transmission
+- Day 17: Set and Forget
+- Day 18: Many-Worlds Interpretation
+- Day 19: Tractor Beam
+- Day 20: Donut Maze
+- Day 21: Springdroid Adventure
+- Day 22: Slam shuffle (TODO)
+- Day 23: Category Six (TODO)
+- Day 24: Planet of Discord (TODO)
+- Day 25: Cryostasis
