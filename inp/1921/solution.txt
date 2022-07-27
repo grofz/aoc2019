@@ -1,3 +1,6 @@
+Day 21 solution:
+
+2050 instructions loaded
 >> NOT A T
 >> NOT B J
 >> OR T J
@@ -5,11 +8,9 @@
 >> OR T J
 >> AND D J
 >> WALK
-
  Computer says 19355391
 
-
- Intcode 2050 instructions loaded
+ 2050 instructions loaded
  >> NOT B J
  >> OR T J
  >> NOT C T
@@ -25,6 +26,89 @@
 
 Running...
 
-
 Computer says 1143770635
 Computer halts.
+
+
+SOLUTION
+========
+
+There are 2^4 (in Part 1) or 2^9 (in Part2) possible ground/hole combinations.
+However, game only offers those combinations that are solvable when droid's
+visibility range and jumping distance (4 tiles in both parts) is considered.
+The logic is therefore much simpler.
+
+In part 1 there are only three possible cases droid encounters: 
+one-gap, two-gaps or three-gaps hole.
+They look like this:
+
+1-gap hole    2-gaps hole  3-gaps hole
+
+@      [@]    @      [@]   @      [@]
+# # # . #     # # . . #    # . . . #
+  A B C D       A B C D      A B C D
+
+The condition for the jump is therefore:
+
+    ================================
+    (jump is) = ( ~A v ~B v ~C ) ^ D
+    ================================
+
+(~X is not X; X v Y is X or Y; X ^ Y is X and Y)
+
+This is equivalent to
+    ================================
+    (jump is) = ~( A ^ B ^ C ) ^ D
+    ================================
+
+Part 2: The droid jumps the same distance, but game gives us more challenging
+combinations that can cause droid ending in a hole. Here is one such case:
+
+@      [@]
+# # # . # . # . . #
+  A B C D E F G H I
+
+Using part 1 logic, droid jumps to tile D, but then it is trapped: there is no
+ground four tiles ahead (to jump) nor one tile ahead (to not jump). To avoid
+this we should avoid jumping when both E and H are gaps!
+
+The modified condition is then
+    ============================================
+    (jump is) = ~( A ^ B ^ C ) ^ D ^ ~( ~E ^ ~H)
+    ============================================
+
+which is equivalent to
+    =========================================
+    (jump is) = ~( A ^ B ^ C ) ^ D ^ ( E v H)
+    =========================================
+
+Here is the code:
+
+OR A T
+AND B T
+AND C T
+NOT T J
+AND D J
+
+and WALK, or, additional commands in part 2
+
+NOT E T
+AND E T  ... T is now zero because  ~E ^ E is .False.
+OR E T
+OR H T
+AND T J
+
+and RUN.
+
+Alternatively, a two instruction shorter code
+OR A T
+AND B T
+AND C T
+NOT T T
+AND D T
+OR E J
+OR H J
+AND T J
+RUN
+
+The end. 

@@ -1,6 +1,6 @@
   program main
     implicit none
-goto 20
+goto 22
 
 01  call day01('inp/1901/input.txt')
 
@@ -55,9 +55,11 @@ goto 20
 20  continue
    !call day20('inp/1920/sample3.txt')
     call day20('inp/1920/input.txt')
-stop
 
 21  call day21('inp/1921/input.txt')
+
+22  call day22('inp/1922/input.txt')
+stop
 
 25  call day25('inp/1925/input.txt') ! password
 
@@ -734,6 +736,57 @@ stop
 
     call run_ascii(file)
   end subroutine day21
+
+
+
+  subroutine day22(file)
+    use day1922_mod, only : cards_t, IXB, BIG_DECK, SMALL_DECK, NREP
+    implicit none
+    character(len=*), intent(in) :: file
+
+    integer, parameter :: NCOMB=50
+    type(cards_t) :: deck, comb(NCOMB), wrk
+    integer(IXB) :: ans, j, rep(NCOMB), todo
+
+    ! Part 1
+    deck = cards_t(SMALL_DECK)
+    call deck % Deal_file(file)
+    ans = deck % Findloc(2019)
+    print '("Answer 22/1 is ",i0,l2)', ans, ans==4649
+
+    ! Part 2
+    ! "comp(j)" is deck shuffled 2**(j-1) times
+    deck = cards_t(BIG_DECK)
+    call deck % Deal_file(file)
+    rep(1) = 1
+    comb(1) = deck ! shuffled once
+    do j=2,NCOMB
+      !comb(j) = combine(comb(j-1),comb(j-1))
+      comb(j) = comb(j-1) .com. comb(j-1)
+      rep(j) = 2*rep(j-1)
+    enddo
+
+    ! Use "comb" to obtain deck shuffled required amount of ! times
+    wrk = cards_t(BIG_DECK)
+
+    todo = NREP
+    do j = NCOMB, 1, -1
+      if (todo == 0) exit
+      if (todo / rep(j) ==  1) then
+        todo = todo - rep(j)
+        !wrk = combine(comb(j),wrk)
+        wrk = comb(j) .com. wrk
+      else if (todo / rep(j) == 0) then
+        continue
+      else
+        error stop 'not possible'
+      end if
+    end do
+    ans = wrk % Pick_card(2020_IXB)
+    print '("Answer 22/2 is ",i0,l2)', ans, ans==68849657493596_IXB
+    print *
+  end subroutine day22
+
 
 
   subroutine day25(file)
