@@ -1,6 +1,6 @@
   program main
     implicit none
-goto 22
+goto 23
 
 01  call day01('inp/1901/input.txt')
 
@@ -59,6 +59,8 @@ goto 22
 21  call day21('inp/1921/input.txt')
 
 22  call day22('inp/1922/input.txt')
+
+23  call day23('inp/1923/input.txt')
 stop
 
 25  call day25('inp/1925/input.txt') ! password
@@ -786,6 +788,24 @@ stop
     print '("Answer 22/2 is ",i0,l2)', ans, ans==68849657493596_IXB
     print *
   end subroutine day22
+
+
+
+  subroutine day23(file)
+    use day1923_mod, only : network_t
+    implicit none
+    character(len=*), intent(in) :: file
+
+    type(network_t) :: network
+    integer :: ans1, ans2
+
+    call network % Init(file)
+    call network % Run(ans1,ans2)
+    print '("Answer 23/1 ",i0,l2)', ans1, ans1==24922
+    print '("Answer 23/2 ",i0,l2)', ans2, ans2==19478
+    print *
+
+  end subroutine day23
 
 
 

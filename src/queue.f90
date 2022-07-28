@@ -23,7 +23,7 @@
       procedure :: export => queue_export
       procedure :: insert => queue_insert
       procedure :: remove => queue_remove
-      final :: queue_final
+     !final :: queue_final
     end type queue_t
     interface queue_t
       module procedure queue_new

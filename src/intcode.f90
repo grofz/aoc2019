@@ -16,6 +16,7 @@
       integer(IXB)              :: rbs=0  ! relative base
       integer              :: n      ! memory size (basic memory)
       type(queue_t) :: inbuf, outbuf ! input / output buffers
+      integer              :: clock  ! processed instructions counter
     contains
       ! load program from integer array or file (initialization)
       generic :: Load => computer_load64, computer_load128 ! @(arr)
@@ -138,7 +139,7 @@
       allocate(this%rom(0:this%n-1))
       this%rom(0:this%n-1) = mem0 ! TODO - remove () left from =
       call this % Reset()
-print '(a)', 'Computer_load64 called'
+!print '(a)', 'Computer_load64 called'
     end subroutine computer_load64
 
     subroutine computer_load128(this, mem0)
@@ -149,7 +150,7 @@ print '(a)', 'Computer_load64 called'
       allocate(this%rom(0:this%n-1))
       this%rom(0:this%n-1) = mem0 ! TODO - remove () left from =
       call this % Reset()
-print '(a)', 'computer_load128 called'
+!print '(a)', 'computer_load128 called'
     end subroutine computer_load128
 
 
@@ -192,6 +193,7 @@ print '(a)', 'computer_load128 called'
       this%rbs = 0_IXB
       this%inbuf = queue_t(maxsize=inbuf0)
       this%outbuf = queue_t(maxsize=outbuf0)
+      this%clock = 0
     end subroutine computer_reset
 
 
@@ -380,6 +382,7 @@ print '(a)', 'computer_load128 called'
         error stop 'computer_step - invalid op'
       end select
       this % ptr = this % ptr + jmp
+      this % clock = this % clock + 1
 
       999 continue ! jump here if not possible to process the instruction
     end subroutine computer_step
@@ -429,8 +432,8 @@ print '(a)', 'computer_load128 called'
       call split(lines(1)%str,',',tokens)
       iarr = tokens % To_int128()
       call this % Load(iarr)
-      print '("Intcode ",i0," instructions loaded")', this%n
-      print '("[... ",5(i6,1x)," ]")', iarr(max(1,this%n-4):)
+     !print '("Intcode ",i0," instructions loaded")', this%n
+     !print '("[... ",5(i6,1x)," ]")', iarr(max(1,this%n-4):)
     end subroutine load_from_file
 
 

@@ -23,7 +23,8 @@
       procedure :: clone => memory_clone
       procedure, private :: memory_init64, memory_init128, memory_read64 
       procedure, private :: memory_write64, memory_write128, memory_read128
-      final :: memory_final
+     !final :: memory_final
+     !day23 - finalization of array of component gives error (try again with newer compiler)
     end type
 
   contains

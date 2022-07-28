@@ -23,7 +23,7 @@ Solutions to Advent of Code 2019 in Fortran
 - Day 19: Tractor Beam
 - Day 20: Donut Maze
 - Day 21: Springdroid Adventure
-- Day 22: Slam shuffle (TODO)
-- Day 23: Category Six (TODO)
+- Day 22: Slam shuffle
+- Day 23: Category Six
 - Day 24: Planet of Discord (TODO)
 - Day 25: Cryostasis
