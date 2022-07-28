@@ -1,6 +1,6 @@
   program main
     implicit none
-goto 23
+goto 24
 
 01  call day01('inp/1901/input.txt')
 
@@ -61,6 +61,10 @@ goto 23
 22  call day22('inp/1922/input.txt')
 
 23  call day23('inp/1923/input.txt')
+
+24  continue
+   !call day24('inp/1924/sample.txt')
+    call day24('inp/1924/input.txt')
 stop
 
 25  call day25('inp/1925/input.txt') ! password
@@ -435,8 +439,8 @@ stop
 
     call GAME % Init_cwd(file, .true.)
     !call GAME % Play(.false., 0.0, score)
-    !call GAME % Play(.true., 0.00, score)
-    call GAME % Play(.true., 0.02, score)
+     call GAME % Play(.true., 0.00, score)
+    !call GAME % Play(.true., 0.02, score)
     return
 
 
@@ -485,7 +489,7 @@ stop
     call part2_sol(complist, stoch, 1000000000000_I8B, ans2)
     print '("Ore consumption (14/1)  ",i0,l2)', -ans1,  -857266==ans1
     print '("Fuel produces (14/2)    ",i0,l2)', ans2,  2144702==ans2
-    stop
+    print *
   end subroutine day14
 
 
@@ -804,8 +808,52 @@ stop
     print '("Answer 23/1 ",i0,l2)', ans1, ans1==24922
     print '("Answer 23/2 ",i0,l2)', ans2, ans2==19478
     print *
-
   end subroutine day23
+
+
+
+  subroutine day24(file)
+    use day1924_mod
+    use parse_mod, only : read_pattern
+    implicit none
+    character(len=*), intent(in) :: file
+    character(len=1), allocatable :: tmp(:,:), wrk(:,:), grid(:,:,:)
+    integer :: i, nlist, b, ans1, ans2
+    integer, allocatable :: list(:)
+    logical :: new_layout
+
+    ! Get input
+    tmp = read_pattern(file)
+    allocate(wrk(0:size(tmp,1)+1,0:size(tmp,2)+1))
+    wrk = '.'
+    wrk(1:size(tmp,1),1:size(tmp,2)) = tmp
+    deallocate(tmp)
+
+    ! Part 1 = grow until pattern repeats
+    tmp = wrk
+    do i=1,4000
+      b = biod(tmp) 
+      call add_list(list,nlist,b,new_layout)
+      print *
+      call print_bugs(tmp)
+      print *, b
+      if (.not. new_layout) exit
+      tmp = one_step(tmp)
+    end do
+    ans1 = b
+    print '("Answer 24/1 is ",i0,l2)', ans1, ans1==30446641
+
+    ! Part 2
+    allocate(grid(1:size(wrk,1)-2, 1:size(wrk,2)-2, -500:500))
+    grid = '.'
+    grid(:,:,0) = wrk(1:size(wrk,1)-2,1:size(wrk,2)-2)
+    do i=1,200
+      grid = one_step2(grid)
+    end do
+    ans2 = count(grid==BUG)
+    print '("Answer 24/2 is ",i0,l2)', ans2, ans2==1985
+
+  end subroutine day24
 
 
 

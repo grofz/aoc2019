@@ -25,5 +25,5 @@ Solutions to Advent of Code 2019 in Fortran
 - Day 21: Springdroid Adventure
 - Day 22: Slam shuffle
 - Day 23: Category Six
-- Day 24: Planet of Discord (TODO)
+- Day 24: Planet of Discord
 - Day 25: Cryostasis
