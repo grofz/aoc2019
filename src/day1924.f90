@@ -58,7 +58,6 @@
 
     function one_step(ain) result(aout)
       character(len=1), intent(in) :: ain(0:,0:)
-      !character(len=1) :: aout(lbound(ain,1):ubound(ain,1),lbound(ain,2):ubound(ain,2))
       character(len=1),allocatable :: aout(:,:)
 
       integer :: i,j,ni,nj, ngb, k

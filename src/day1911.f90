@@ -266,12 +266,12 @@
          if (ierr /= 0) exit
 
          associate(x=>adat%xy(1), y=>adat%xy(2))
-           if (ismirror(1)) then
+           if (ismirror0(1)) then
              x1 = nx-x-xoffset+1
            else
              x1 = x+xoffset
            end if
-           if (ismirror(2)) then
+           if (ismirror0(2)) then
              y1 = ny-y-yoffset+1
            else
              y1 = y+yoffset

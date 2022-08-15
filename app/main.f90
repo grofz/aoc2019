@@ -1,6 +1,6 @@
   program main
     implicit none
-goto 24
+!goto 15
 
 01  call day01('inp/1901/input.txt')
 
@@ -65,7 +65,6 @@ goto 24
 24  continue
    !call day24('inp/1924/sample.txt')
     call day24('inp/1924/input.txt')
-stop
 
 25  call day25('inp/1925/input.txt') ! password
 
@@ -863,7 +862,7 @@ stop
     character(len=*), intent(in) :: file
 
     call run_ascii(file)
-    ! candy cane, mouse, coin,semiconductor
+    ! candy cane, mouse, coin, semiconductor
     ! pass 100667393
     !      100667393
   end subroutine day25

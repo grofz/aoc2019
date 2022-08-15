@@ -1,5 +1,5 @@
   module day1911b_mod
-    use intcode_mod, only : computer_t, SINBUF_EMPTY, SHALT
+    use intcode_mod, only : computer_t, SINBUF_EMPTY, SHALT, SOUTBUF_READY
     use day1911_mod, only : board_t, HEADING_UP, WHITE
     implicit none
 
@@ -37,7 +37,7 @@
         ! give computer the actual color
         color = this%board % Getcolor()
         call this%ZX128 % Set_inbuf(color)
-        call this%ZX128 % Run(status)
+        100 call this%ZX128 % Run(status)
 
         select case(status)
         case (SINBUF_EMPTY, SHALT)
@@ -63,8 +63,10 @@
 '("At ",i3,1x,i3,"  repainting from ",i1" to ",i1,".  Turning ",i1,".")', &
               this%board%rob_xy, color, commands
           end if
-
+        case (SOUTBUF_READY)
+          goto 100
         case default
+          print *, status
           error stop 'robot_walk - unexpected  status code'
         end select
         if (status == SHALT) exit

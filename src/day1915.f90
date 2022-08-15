@@ -343,6 +343,7 @@
 
       integer :: i, j
       character(len=10) :: num
+
       map = this % Export(limits)
       allocate(chmap(size(map,1),size(map,2)))
 

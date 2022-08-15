@@ -150,7 +150,9 @@
       integer :: inpauto, inp, inpfut, xfut(2), xauto(2)
 
       if (this % Isempty_outbuf()) then
-        error stop 'process_output - buffer is empty'
+        !error stop 'process_output - buffer is empty'
+        print *, 'process_output - buffer is empty'
+        return
       end if
 
       dout128 = this % Get_outbuf()
@@ -433,7 +435,8 @@
       call clone % Set_inbuf(0)  ! provide input...
       do
         ! run and wait for the output that plots the ball
-        call clone % Run(state)
+        100 call clone % Run(state)
+        if (state==SOUTBUF_READY) goto 100
         outbuf = clone % Get_outbuf()
         if (outbuf(3)==ID_BALL) then
           x0(1) = outbuf(1)
