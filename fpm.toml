@@ -10,3 +10,10 @@ auto-tests = true
 auto-examples = true
 [install]
 library = false
+
+[fortran]
+implicit-external = true
+implicit-typing = true
+
+[dependencies]
+list = {git="https://github.com/grofz/list.git"}
