@@ -1,6 +1,6 @@
   module day1907b_mod
     use day1907_mod, only : computer_t, SHALT, SRUNNING  ! our Intercode computer (V2.5)
-    use queue_mod, only : queue_t                        ! buffers
+    use queue_aoc19, only : queue_t                        ! buffers
     use permutation_mod, only : permutation_generator_t
     implicit none
     private

@@ -4,7 +4,7 @@
 ! Adding input and output buffers
 !
   module day1907_mod
-    use queue_mod, only : queue_t
+    use queue_aoc19, only : queue_t
     use memory_mod, only : memory_t
     implicit none
     private

@@ -8,7 +8,8 @@
 ! - actual opcodes
 
 module intcode23_mod
-  use iso_fortran_env, only : int64
+  use iso_fortran_env, only : int32, int64
+  use queue_mod
   use rbnode_mod, only : rbbasetree_t, rbnode_t, rbnode_freetree, rbnode_find, &
     rbnode_read, rbnode_insert, rbnode_update, rbnode_successor
   use common_mod, only : DATA_KIND, mold
@@ -17,7 +18,7 @@ module intcode23_mod
   implicit none
   private
 
-  integer, parameter :: ADDRESS_KIND=int64, VALUE_KIND=int64
+  integer, parameter :: ADDRESS_KIND=int64, VALUE_KIND=int64 ! must be same
   public ADDRESS_KIND, VALUE_KIND
 
   type memory_t
@@ -29,7 +30,7 @@ module intcode23_mod
     procedure :: size => memory_size, print => memory_print
     final :: memory_finalize
   end type memory_t
-public memory_t ! temporary for testing
+!public memory_t ! temporary for testing
 
   type memoryitem_t
     integer(ADDRESS_KIND) :: addr
@@ -37,9 +38,20 @@ public memory_t ! temporary for testing
   end type
 
   type, public :: machine_t
+    private
     type(memory_t) :: mem
-    integer(ADDRESS_KIND) :: ip
+    type(queue_t)  :: inp, out
+    integer(ADDRESS_KIND) :: ip = 0, base = 0
+  contains
+    procedure :: load => machine_load
+    procedure :: step => machine_step
+    procedure :: pushinput => machine_pushinput
+    procedure :: popoutput => machine_popoutput
+    procedure :: readaddr => machine_readaddr
+    procedure :: writeaddr => machine_writeaddr
   end type
+
+  integer, public, parameter :: STAT_RUN=0, STAT_HALT=1, STAT_OUTPUT_READY=2, STAT_WAIT_INPUT=3
 
 contains 
 
@@ -94,6 +106,9 @@ contains
     integer, allocatable :: starts(:)
     integer :: i, nsize
 
+    if (associated(this%tree%root)) &
+        error stop 'memory_readfile - memory is not empty'
+
     lines = read_strings(file)
     if (size(lines)/=1) &
         error stop 'memory_readfile: input file not a single line'
@@ -106,12 +121,10 @@ contains
     allocate(values(size(memitems)*nsize))
     allocate(starts(size(memitems)))
     do i=1, size(memitems)
-      memitems(i)%addr = i-1
-      starts(i) = 2*i-1
+      memitems(i)%addr = i-1  ! memory is zero-based
+      starts(i) = (i-1)*nsize+1
       values(starts(i):starts(i)+nsize-1) = transfer(memitems(i),mold)
     end do
-    if (associated(this%tree%root)) &
-        error stop 'memory_readfile - memory is not empty'
     this%tree%root => rbnode_t(values, starts)
 
   contains
@@ -206,5 +219,210 @@ contains
   ! =======
   ! Machine
   ! =======
+
+  function machine_step(this) result(istat)
+    class(machine_t), intent(inout) :: this
+    integer :: istat
+
+    integer :: op, modes(3)
+    logical :: jump
+
+    call decode_opcode(this, op, modes)
+
+    ! do nothing if halt or waiting for input
+    if (op==99) then
+      istat = STAT_HALT
+      return
+    else if (op==3 .and. this%inp%isempty()) then
+      istat = STAT_WAIT_INPUT
+      return
+    end if
+
+    ! process instruction
+    istat = STAT_RUN
+    jump = .false.
+    select case (op)
+    case(1) ! add (VVA)
+      call this%mem%write(get_addr(this,3,modes(3)), &
+        get_value(this,1,modes(1)) + get_value(this,2,modes(2)))
+
+    case(2) ! multiply (VVA)
+      call this%mem%write(get_addr(this,3,modes(3)), &
+        get_value(this,1,modes(1)) * get_value(this,2,modes(2)))
+
+    case(3) ! input (A)
+      if (this%inp%isempty()) error stop 'machine_step - empty input'
+      call this%mem%write(get_addr(this,1,modes(1)), transfer(this%inp%dequeue(),0_VALUE_KIND))
+
+    case(4) ! output (V)
+      call this%out%enqueue(transfer(get_value(this,1,modes(1)),mold))
+      istat = STAT_OUTPUT_READY
+
+    case(5) ! 5=jump-if-true (2VV): if the first parameter is non-zero, it sets the instruction pointer to the value from the second parameter. Otherwise, it does nothing.
+      associate (val=>get_value(this,1,modes(1)))
+        if (val /= 0) then
+          this%ip = get_value(this,2,modes(2))
+          jump = .true.
+        end if
+      end associate
+
+    case(6) ! 6=jump-if-false (2VV): if the first parameter is zero, it sets the instruction pointer to the value from the second parameter. Otherwise, it does nothing.
+      associate (val=>get_value(this,1,modes(1)))
+        if (val == 0) then
+          this%ip = get_value(this,2,modes(2))
+          jump = .true.
+        end if
+      end associate
+
+    case(7) ! 7=less than (3VVA): if the first parameter is less than the second parameter, it stores 1 in the position given by the third parameter. Otherwise, it stores 0.
+      associate(res=> (get_value(this,1,modes(1)) < get_value(this,2,modes(2))) )
+        if (res) then
+          call this%mem%write(get_addr(this,3,modes(3)), 1_VALUE_KIND)
+        else
+          call this%mem%write(get_addr(this,3,modes(3)), 0_VALUE_KIND)
+        end if
+      end associate
+
+    case(8) ! 8=equals (3VVA): if the first parameter is equal to the second parameter, it stores 1 in the position given by the third parameter. Otherwise, it stores 0.
+      associate(res=> (get_value(this,1,modes(1)) == get_value(this,2,modes(2))) )
+        if (res) then
+          call this%mem%write(get_addr(this,3,modes(3)), 1_VALUE_KIND)
+        else
+          call this%mem%write(get_addr(this,3,modes(3)), 0_VALUE_KIND)
+        end if
+      end associate
+
+    case(9) ! 9=adjust-base (1V)
+      this%base = this%base + get_value(this, 1, modes(1))
+
+    case default
+      error stop 'machine_step - invalid opcode'
+    end select
+
+    if (.not. jump) this%ip = this%ip + no_of_pars(op) + 1
+
+  end function machine_step
+
+
+  subroutine decode_opcode(this, op, modes)
+    class(machine_t), intent(in) :: this
+    integer,  intent(out) :: op, modes(3)
+
+    integer :: instr, k
+
+    modes = -1
+    instr = int(this%mem%read(this%ip), int32)
+    op = mod(instr,100)
+    do k=1, no_of_pars(op)
+      modes(k) = mod(instr/10**(k+1),10)
+    end do
+  end subroutine decode_opcode
+
+
+  integer function no_of_pars(op) result(npars)
+    integer, intent(in) :: op
+    select case(op)
+    case(1,2,7,8) ! add, multiply, less-than, equals
+      npars = 3
+    case(5,6)     ! jump-if-true, jump-if-false
+      npars = 2
+    case(3,4,9)   ! input, output, adjust-base
+      npars = 1
+    case(99)      ! halt
+      npars = 0
+    case default
+      error stop 'no_of_pars: invalid op code'
+    end select
+  end function no_of_pars
+
+
+  function get_value(this, ipos, mode) result(val)
+    type(machine_t), intent(in) :: this
+    integer, intent(in) :: ipos, mode
+    integer(VALUE_KIND) :: val
+
+    associate(addr=>this%mem%read(this%ip+ipos))
+    select case(mode)
+    case(0) ! position mode
+      val = this%mem%read(addr)
+    case(1) ! immediate mode
+      val = addr
+    case(2) ! relative mode
+      val = this%mem%read(addr+this%base)
+    case default
+      error stop 'get_value - invalid mode'
+    end select
+    end associate
+  end function get_value
+
+
+  function get_addr(this, ipos, mode) result(addr)
+    type(machine_t), intent(in) :: this
+    integer, intent(in) :: ipos, mode
+    integer(ADDRESS_KIND) :: addr
+
+    associate(addr0=>this%mem%read(this%ip+ipos))
+    select case(mode)
+    case(0) ! position mode
+      addr = addr0
+    case(1) ! immediate mode
+      error stop 'get_addr - immediate mode invalid in address context'
+    case(2) ! relative mode
+      addr = addr0+this%base
+    case default
+      error stop 'get_addr - invalid mode'
+    end select
+    end associate
+  end function get_addr
+
+
+  subroutine machine_load(this, file)
+    class(machine_t), intent(inout) :: this
+    character(len=*), intent(in) :: file
+
+    if (associated(this%mem%tree%root)) then
+      ! clean memory and reset instruction pointers of the old machine
+      call rbnode_freetree(this%mem%tree%root)
+      this%ip = 0
+      this%base = 0
+    end if
+    call this%mem%readfile(file)
+  end subroutine machine_load
+
+
+  subroutine machine_pushinput(this, val)
+    class(machine_t), intent(inout) :: this
+    integer(VALUE_KIND), intent(in) :: val
+    call this%inp%enqueue(transfer(val,mold))
+  end subroutine machine_pushinput
+
+
+  function machine_popoutput(this) result(val)
+    class(machine_t), intent(inout) :: this
+    integer(VALUE_KIND) :: val
+    if (.not. this%out%isempty()) then
+      val = transfer(this%out%dequeue(), 1_VALUE_KIND)
+    else
+      error stop 'machine_popoutput - no output'
+    end if
+  end function machine_popoutput
+
+
+  subroutine machine_writeaddr(this, addr, val)
+    class(machine_t), intent(inout) :: this
+    integer(ADDRESS_KIND), intent(in) :: addr
+    integer(VALUE_KIND), intent(in) :: val
+
+    call this%mem%write(addr, val)
+  end subroutine machine_writeaddr
+
+
+  function machine_readaddr(this, addr) result(val)
+    class(machine_t), intent(in) :: this
+    integer(ADDRESS_KIND), intent(in) :: addr
+    integer(VALUE_KIND) :: val
+
+    val = this%mem%read(addr)
+  end function machine_readaddr
 
 end module intcode23_mod
