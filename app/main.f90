@@ -12,13 +12,14 @@ goto 5
 04  call day04()
 
 05  call day05('inp/1905/input.txt')
-goto 9
+goto 7
 
 06  continue
     !call day06('inp/1906/sample.txt')
     call day06('inp/1906/input.txt')
 
 07  call day07('inp/1907/input.txt')
+goto 9
 
 08  call day08('inp/1908/input.txt')
 
@@ -261,30 +262,19 @@ stop
 
 
   subroutine day07(file)
-    use day1907b_mod
-    use parse_mod, only : read_strings, string_t, split
+    use day1907_mod, only : solve_day7, VALUE_KIND
     implicit none
     character(len=*), intent(in) :: file
-    type(string_t), allocatable :: lines(:), items(:)
     integer, parameter :: CLUSTER_SIZE=5
-    type(computer_t) :: cluster(CLUSTER_SIZE)
-    integer :: i, ans1, ans2
+    integer(VALUE_KIND) :: ans(2)
+    integer(VALUE_KIND), parameter, dimension(2) :: expected = [338603,63103596]
 
-    ! Read and load Intcode program
-    lines = read_strings(file)
-    if (size(lines)/=1) error stop 'day07 - input file has more than one line'
-    call split(lines(1)%str,',',items)
-    do i=1, CLUSTER_SIZE
-      call cluster(i) % Load(items % To_int())
-    end do
-    !print '(16(i5,1x))', items % To_int()
-
-    ! Solve the puzzle
-    call solve_day7(cluster, .false., ans1)
-    print '("Highest signal value (7/1) is: ",i0,l2)',ans1, ans1==338603
-    call solve_day7(cluster, .true., ans2)
-    print '("Highest signal value (7/2) is: ",i0,l2)',ans2, ans2==63103596
+    call solve_day7(CLUSTER_SIZE, file, .false., ans(1))
+    print '("Highest signal value (7/1) is: ",i0,l2)',ans(1), ans(1)==expected(1)
+    call solve_day7(CLUSTER_SIZE, file, .true., ans(2))
+    print '("Highest signal value (7/2) is: ",i0,l2)',ans(2), ans(2)==expected(2)
     print *
+    if (.not. all(expected==ans)) stop 'Day 7 invalid results'
   end subroutine day07
 
 
