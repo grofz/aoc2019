@@ -2,7 +2,7 @@
 ! Procedures that implement the simple queue
 !
 
-  module queue_mod
+  module queue_aoc19
     implicit none
     private
 
@@ -159,4 +159,4 @@
       index_prev = n - mod(n-ind+1, n)
     end function index_prev
 
-  end module queue_mod
+  end module queue_aoc19

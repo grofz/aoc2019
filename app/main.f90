@@ -1,26 +1,30 @@
   program main
     implicit none
-!goto 15
+goto 2
 
 01  call day01('inp/1901/input.txt')
 
 02  call day02('inp/1902/input.txt')
+goto 5
 
 03  call day03('inp/1903/input.txt')
 
 04  call day04()
 
 05  call day05('inp/1905/input.txt')
+goto 7
 
 06  continue
     !call day06('inp/1906/sample.txt')
     call day06('inp/1906/input.txt')
 
 07  call day07('inp/1907/input.txt')
+goto 9
 
 08  call day08('inp/1908/input.txt')
 
 09  call day09('inp/1909/input.txt')
+stop
 
 10  continue
     call day10('inp/1910/input.txt')
@@ -107,66 +111,44 @@
 
 
   subroutine day02(file)
-    !use day1902_mod
-    !use day1905_mod
-    use day1907_mod ! Version 2.5 computer from day 7
-    use parse_mod, only : read_strings, split, string_t
+    use intcode23_mod, only : machine_t, STAT_HALT, VALUE_KIND, ADDRESS_KIND
     implicit none
     character(len=*), intent(in) :: file
-    type(string_t), allocatable :: lines(:), items(:)
-    integer, allocatable :: state(:)
-    type(computer_t) :: zx
-    integer :: inp(2), i, j, output
-    integer, parameter :: TARGET_RESULT=19690720
+    integer(VALUE_KIND), parameter :: TARGET_RESULT=19690720
+    integer(VALUE_KIND) :: ans(2), i, j, expected_ans(2)
 
-    ! Read and parse input
-    lines = read_strings(file)
-    if (size(lines)/=1) error stop 'day02 - input file has more than one line'
-    call split(lines(1)%str, ',', items)
-    !items = parse_array(lines(1),',',8)
-    state = items % To_int()
-    !state = str2int(items)
-    !print '(20(i4,1x))', state
+    expected_ans = [4930687, 5335]
 
-    ! Load and run
-    !call zx % init(state)
-    call zx % Load(state)
-    call zx % Legacy_setinput([12,2])
-    call zx % Run()
-    output = zx % Legacy_getoutput()
-    print '("Answer 2/1 ",i0,l2)', output, output==4930687
+    ! Part 1
+    ans(1) = run_computer([12_VALUE_KIND, 2_VALUE_KIND])
+    print '("Answer 2/1 ",i0,l2)', ans(1), ans(1)==expected_ans(1)
 
-    ! Part 2 - manual
-    goto 100
-    do
-      write(*,'(a)',advance='no') 'guess the input '
-      read(*,*) inp(1), inp(2)
-      call zx % Reset()
-      call zx % legacy_Setinput(inp)
-      call zx % Run()
-    output = zx % Legacy_getoutput()
-      print *, 'RESULT IS ',output, output-TARGET_RESULT
-    end do
-
-    ! Part 2 - automatic
-    100 continue
-    j = 0
-    do i=0, 99
-      call zx % Reset()
-      call zx % legacy_Setinput([i, j])
-      call zx % Run()
-      !print '("Iteration ",i2,1x,i2," difference from target ",i9)',i,j,zx%mem(0)-TARGET_RESULT
-      if (zx%legacy_Getoutput() > TARGET_RESULT) exit
-    end do
-    do j=0, 99
-      call zx % Reset()
-      call zx % legacy_Setinput([i-1, j])
-      call zx % Run()
-      !print '("Iteration ",i2,1x,i2," difference from target ",i9)',i,j,zx%mem(0)-TARGET_RESULT
-      if (zx%legacy_Getoutput() >= TARGET_RESULT) exit
-    end do
-    print '("Answer 2/1 ",i0,l2)', 100*i+j, zx%legacy_Getoutput()==TARGET_RESULT
+    ! Part 2
+    MAIN: do i=0, 99
+      do j=0, 99
+        if (run_computer([i,j])==TARGET_RESULT) exit MAIN
+      end do
+    end do MAIN
+    ans(2) = 100*i+j
+    print '("Answer 2/1 ",i0,l2)', ans(2), ans(2)==expected_ans(2)
     print *
+    if (.not. all(ans==expected_ans)) stop 'Day 2 invalid results'
+
+  contains
+    function run_computer(inps) result(out)
+      type(machine_t) :: ZX
+      integer(VALUE_KIND), intent(in) :: inps(2)
+      integer(VALUE_KIND) :: out 
+
+      call ZX%load(file)
+      call ZX%writeaddr(1_ADDRESS_KIND, inps(1))
+      call ZX%writeaddr(2_ADDRESS_KIND, inps(2))
+      do 
+        if (ZX%step()==STAT_HALT) exit
+      end do
+      out = ZX%readaddr(0_ADDRESS_KIND)
+    end function run_computer
+
   end subroutine day02
 
 
@@ -208,39 +190,35 @@
 
 
   subroutine day05(file)
-    !use day1905_mod
-    use day1907_mod ! modernized interpreter
-    use parse_mod, only : read_strings, string_t, split
+    use intcode23_mod, only : machine_t, VALUE_KIND, STAT_HALT, STAT_OUTPUT_READY
     implicit none
     character(len=*), intent(in) :: file
-    type(string_t), allocatable :: lines(:), items(:)
-    integer, allocatable :: state(:)
-    type(computer_t) :: zx
-    integer, allocatable :: outbuf(:)
 
-    ! Read and parse input
-    lines = read_strings(file)
-    if (size(lines)/=1) error stop 'day05 - input file has more than one line'
-    call split(lines(1)%str,',',items)
-    state = items % To_int()
-    !print '(16(i5,1x))', state
+    integer(VALUE_KIND) :: inp(2), ans(2), expected_ans(2)
+    integer :: i, stat
+    type(machine_t) :: ZX
 
-    ! Load and run test (Part 1)
-    call zx % Load(state)
-    call zx % Reset(1,10)
-    call zx % set_inbuf(1)
-    call zx % Run()
-    outbuf = zx%get_outbuf()
-    print '(a,8(i8,1x))', 'Buffer =', outbuf
-    print '("Answer 5/1 ",i0,l2)', outbuf(size(outbuf)), outbuf(size(outbuf))==9006673
+    expected_ans = [9006673, 3629692]
+    inp = [1,5]
 
-    ! Part 2
-    call zx % Reset(1,1)
-    call zx % set_inbuf(5)
-    call zx % Run()
-    outbuf = zx%get_outbuf()
-    print '(a,8(i8,1x))', 'Buffer =', outbuf
-    print '("Answer 5/2 ",i0,l2)', outbuf(size(outbuf)), outbuf(size(outbuf))==3629692
+    do i=1,2
+      call ZX%load(file)
+      call ZX%pushinput(inp(i))
+      do
+        stat = ZX%step()
+        if (stat==STAT_OUTPUT_READY) then
+          ans(i)=ZX%popoutput()
+          print *, ans(i)
+        end if
+        if (stat==STAT_HALT) exit
+      end do
+    end do
+
+    print '(a,i9,l2)', 'Answer (5/1)', &
+        ans(1), ans(1)==expected_ans(1)
+    print '(a,i9,l2)', 'Answer (5/2)', &
+        ans(2), ans(2)==expected_ans(2)
+    if (.not. all(ans==expected_ans)) stop 'Day 5 invalid results'
     print *
   end subroutine day05
 
@@ -284,30 +262,19 @@
 
 
   subroutine day07(file)
-    use day1907b_mod
-    use parse_mod, only : read_strings, string_t, split
+    use day1907_mod, only : solve_day7, VALUE_KIND
     implicit none
     character(len=*), intent(in) :: file
-    type(string_t), allocatable :: lines(:), items(:)
     integer, parameter :: CLUSTER_SIZE=5
-    type(computer_t) :: cluster(CLUSTER_SIZE)
-    integer :: i, ans1, ans2
+    integer(VALUE_KIND) :: ans(2)
+    integer(VALUE_KIND), parameter, dimension(2) :: expected = [338603,63103596]
 
-    ! Read and load Intcode program
-    lines = read_strings(file)
-    if (size(lines)/=1) error stop 'day07 - input file has more than one line'
-    call split(lines(1)%str,',',items)
-    do i=1, CLUSTER_SIZE
-      call cluster(i) % Load(items % To_int())
-    end do
-    !print '(16(i5,1x))', items % To_int()
-
-    ! Solve the puzzle
-    call solve_day7(cluster, .false., ans1)
-    print '("Highest signal value (7/1) is: ",i0,l2)',ans1, ans1==338603
-    call solve_day7(cluster, .true., ans2)
-    print '("Highest signal value (7/2) is: ",i0,l2)',ans2, ans2==63103596
+    call solve_day7(CLUSTER_SIZE, file, .false., ans(1))
+    print '("Highest signal value (7/1) is: ",i0,l2)',ans(1), ans(1)==expected(1)
+    call solve_day7(CLUSTER_SIZE, file, .true., ans(2))
+    print '("Highest signal value (7/2) is: ",i0,l2)',ans(2), ans(2)==expected(2)
     print *
+    if (.not. all(expected==ans)) stop 'Day 7 invalid results'
   end subroutine day07
 
 
@@ -333,42 +300,38 @@
 
 
   subroutine day09(file)
-    use kinds_m, only : I8B
-    use intcode_mod, only : computer_t
-    use parse_mod, only : read_strings, string_t, split
+    use intcode23_mod, only : machine_t, VALUE_KIND, STAT_HALT, STAT_OUTPUT_READY
     implicit none
     character(len=*), intent(in) :: file
-    type(computer_t) :: ZX128
-    integer(I8B), allocatable :: ans1(:), ans2(:)
 
-    ! Read and load Intcode program
-    call ZX128 % Load_from_file(file)
+    integer(VALUE_KIND) :: inp(2), ans(2), expected_ans(2)
+    integer :: i, stat
+    type(machine_t) :: ZX
 
-    ! Test Program 1
-    !iarr128=[109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99]
-    ! Test Program 2
-    !iarr128=[1102,34915192,34915192,7,4,7,99,0]
-    ! Test Program 3
-    !iarr128=[104_I8B,1125899906842624_I8B,99_I8B]
-    !call ZX128 % Load(iarr128)
+    expected_ans = [2457252183_VALUE_KIND, 70634_VALUE_KIND]
+    inp = [1,2]
 
-    ! Part 1
-    call ZX128 % Reset(1,1)
-    call ZX128 % Set_inbuf(1)
-    call ZX128 % Run()
-    ans1 = ZX128 % Get_outbuf()
-    print '(a/,4(i18))', 'BOOST diagnostic code (9/1)', ans1
-    print '("Is valid answer ?",l2)', ans1(1)==2457252183_I8B
+    do i=1,2
+      call ZX%load(file)
+      call ZX%pushinput(inp(i))
+      do
+        stat = ZX%step()
+        if (stat==STAT_OUTPUT_READY) then
+          ans(i)=ZX%popoutput()
+          print *, ans(i)
+        end if
+        if (stat==STAT_HALT) exit
+      end do
+    end do
 
-    ! Part 2
-    call ZX128 % Reset(1,1)
-    call ZX128 % Set_inbuf(2)
-    call ZX128 % Run()
-    ans2 = ZX128 % Get_outbuf()
-    print '(a/,4(i18))', 'BOOST distress signal coordinates (9/2)', ans2
-    print '("Is valid answer ?",l2)', ans2(1)==70634
+    print '(a,i18,l2)', 'BOOST diagnostic code (9/1)            ', &
+        ans(1), ans(1)==expected_ans(1)
+    print '(a,i18,l2)', 'BOOST distress signal coordinates (9/2)', &
+        ans(2), ans(2)==expected_ans(2)
+    if (.not. all(ans==expected_ans)) stop 'Day 9 invalid results'
     print *
-  end subroutine day09
+
+ end subroutine day09
 
 
 
