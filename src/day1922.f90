@@ -1,6 +1,7 @@
   module day1922_mod
     implicit none
     integer, parameter :: IXB = selected_int_kind(36)
+    !integer, parameter :: IXB = selected_int_kind(18)
 
     type, public :: cards_t
       integer(IXB) :: start = 0_IXB
@@ -40,9 +41,14 @@
 ! Pick k-th card from the card deck
 !
       integer(IXB) :: k0
+
       k0 = k
       if (k<0) k0 = this%n-abs(k) 
-      val = mod(k0 * this%step + this%start, this%n)
+     !val = mod(k0 * this%step + this%start, this%n)
+      val = modulo_mult(k0, this%step, this%n)
+      if (val > huge(val)/2 .or. this%start > huge(val)/2) error stop 'overflow'
+      val = mod(val+this%start, this%n)
+      if (val<0 .or. val>this%n-1) error stop 'pick_card error'
     end function
 
 
@@ -101,11 +107,7 @@
       i2=i2-1
 
       next_card = this%Pick_card(i2)
-      if (next_card > this%start) then
-        this % step = next_card - this % start
-      else 
-        this % step = next_card+this%n - this%start
-      end if
+      this % step = mod(next_card+this%n-this%start, this%n)
       if (this%step<0) error stop 'deal_wi postcheck failed'
     end subroutine
 
@@ -187,5 +189,25 @@
       res % start = mod(b%start * a%step + a%start, a%n)
       res % step = mod(a%step * b%step, a%n)
     end function
+
+
+
+    function modulo_mult(a, b, m) result(res)
+      integer(IXB), intent(in) :: a, b, m
+      integer(IXB)             :: res
+      integer(IXB) :: a0, b0
+
+      a0 = mod(a, m)
+      b0 = mod(b, m)
+      res = 0
+      do
+        if (b0==0) exit
+        if (a0 > huge(a0)/2) error stop 'modulo_mult - overflow'
+        if (res > huge(a0)/2) error stop 'modulo_mult - overflow'
+        if (mod(b0,2)==1) res = mod(res+a0,m)
+        a0 = mod(2*a0,m)
+        b0 = b0/2
+      end do
+    end function modulo_mult
 
   end module day1922_mod
